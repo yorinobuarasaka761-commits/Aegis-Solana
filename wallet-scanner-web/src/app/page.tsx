@@ -223,7 +223,7 @@ export default function Home() {
                             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
                         >
                             <FileText className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Docs</span>
+                            <span>Docs</span>
                         </a>
                         <a
                             href="https://x.com/Aegis_solana"

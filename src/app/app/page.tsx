@@ -184,10 +184,10 @@ export default function ScannerApp() {
                             href="https://aegis-solana.gitbook.io/aegissolana/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
+                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
                         >
                             <FileText className="w-3.5 h-3.5" />
-                            Docs
+                            <span>Docs</span>
                         </a>
                         <a
                             href="https://x.com/Aegis_solana"

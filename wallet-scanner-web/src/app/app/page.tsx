@@ -161,8 +161,10 @@ export default function ScannerApp() {
                         <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/5 transition-colors text-zinc-400 hover:text-white mr-1 sm:mr-2 active-tactile -ml-2 shrink-0" title="Back to home">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 shadow-md shrink-0">
-                            <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
+                        <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center border border-white/10 shadow-md shrink-0">
+                            <svg viewBox="0 0 100 100" className="w-3.5 h-3.5 fill-white">
+                                <polygon points="50,15 90,85 10,85" />
+                            </svg>
                         </div>
                         <div>
                             <span className="font-barlow font-bold text-sm sm:text-base tracking-wider text-white">
@@ -402,8 +404,10 @@ export default function ScannerApp() {
             <footer className="border-t border-white/[0.05] bg-[#06080F] py-8 px-6 mt-20">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center border border-white/5">
-                            <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
+                        <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center border border-white/5 shrink-0">
+                            <svg viewBox="0 0 100 100" className="w-2.5 h-2.5 fill-white">
+                                <polygon points="50,15 90,85 10,85" />
+                            </svg>
                         </div>
                         <span className="font-barlow font-bold text-xs tracking-wider text-white">
                             AEGIS<span className="text-zinc-500">SOLANA</span>

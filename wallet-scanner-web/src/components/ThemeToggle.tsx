@@ -9,7 +9,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] hover:border-[var(--border-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 active-tactile flex items-center justify-center group"
+      className="relative w-9 h-9 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] hover:border-[var(--border-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-200 active-tactile flex items-center justify-center group shrink-0"
       title={`Switch to ${theme === "dark" ? "Cyber-Aqua" : "Dark"} theme`}
       aria-label={`Switch to ${theme === "dark" ? "Cyber-Aqua" : "Dark"} theme`}
     >

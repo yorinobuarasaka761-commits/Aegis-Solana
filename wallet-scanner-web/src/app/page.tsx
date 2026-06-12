@@ -158,17 +158,17 @@ export default function Home() {
         <div className="min-h-screen bg-[#06080F] text-zinc-100 font-sans antialiased selection:bg-brand-primary/30 selection:text-white">
             
             {/* --- Navigation Bar --- */}
-            <header className="border-b border-white/[0.05] bg-[#070A12]/80 backdrop-blur-md sticky top-0 z-40 px-6 py-4">
+            <header className="border-b border-white/[0.05] bg-[#070A12]/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="relative w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                    <div className="flex items-center gap-2.5">
+                        <div className="relative w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
                             <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <span className="font-barlow font-bold text-lg tracking-wider text-white">
+                            <span className="font-barlow font-bold text-base sm:text-lg tracking-wider text-white">
                                 AEGIS<span className="bg-gradient-to-r from-brand-primary to-purple-400 bg-clip-text text-transparent ml-0.5">SOLANA</span>
                             </span>
-                            <div className="text-[8px] text-zinc-500 font-mono font-bold uppercase tracking-[0.2em] -mt-0.5">
+                            <div className="text-[7px] sm:text-[8px] text-zinc-500 font-mono font-bold uppercase tracking-[0.2em] -mt-0.5">
                                 Risk Prevention Engine
                             </div>
                         </div>
@@ -210,7 +210,7 @@ export default function Home() {
                         </a>
                     </nav>
                     
-                    <div className="flex items-center gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider text-zinc-400">
+                    <div className="flex items-center gap-1.5 sm:gap-3 text-xs font-bold uppercase tracking-wider text-zinc-400">
                         <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981]">
                             <Network className="w-3.5 h-3.5" />
                             Mainnet RPC Active
@@ -220,7 +220,7 @@ export default function Home() {
                             href="https://aegis-solana.gitbook.io/aegissolana/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
+                            className="h-9 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile shrink-0"
                         >
                             <FileText className="w-3.5 h-3.5" />
                             <span>Docs</span>
@@ -229,14 +229,14 @@ export default function Home() {
                             href="https://x.com/Aegis_solana"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 sm:p-2.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center"
+                            className="w-9 h-9 rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center shrink-0"
                             title="Official X @Aegis_solana"
                         >
                             <XIcon className="w-4 h-4 text-purple-400" />
                         </a>
                         <button 
                             disabled
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-barlow font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 cursor-not-allowed shadow-none shrink-0"
+                            className="h-9 px-3 sm:px-4 rounded-xl text-xs font-barlow font-bold uppercase tracking-widest text-zinc-500 bg-zinc-900/40 border border-zinc-800/80 cursor-not-allowed shadow-none shrink-0 flex items-center justify-center"
                         >
                             <span className="hidden sm:inline">Launch App [Inactive]</span>
                             <span className="sm:hidden">Launch</span>

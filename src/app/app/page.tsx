@@ -155,26 +155,26 @@ export default function ScannerApp() {
         <div className="min-h-screen bg-[#06080F] text-zinc-100 font-sans antialiased selection:bg-brand-primary/30 selection:text-white">
             
             {/* Header */}
-            <header className="border-b border-white/[0.05] bg-[#070A12]/80 backdrop-blur-md sticky top-0 z-40 px-6 py-4">
+            <header className="border-b border-white/[0.05] bg-[#070A12]/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Link href="/" className="p-2 -ml-2 rounded-xl hover:bg-white/5 transition-colors text-zinc-400 hover:text-white mr-2 active-tactile" title="Back to home">
+                    <div className="flex items-center gap-2">
+                        <Link href="/" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/5 transition-colors text-zinc-400 hover:text-white mr-1 sm:mr-2 active-tactile -ml-2 shrink-0" title="Back to home">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 shadow-md">
+                        <div className="relative w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 shadow-md shrink-0">
                             <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <span className="font-barlow font-bold text-base tracking-wider text-white">
+                            <span className="font-barlow font-bold text-sm sm:text-base tracking-wider text-white">
                                 AEGIS<span className="bg-gradient-to-r from-brand-primary to-purple-400 bg-clip-text text-transparent ml-0.5">SHIELD</span>
                             </span>
-                            <div className="text-[7.5px] text-zinc-500 font-mono font-bold uppercase tracking-[0.2em] -mt-0.5">
+                            <div className="text-[7px] sm:text-[7.5px] text-zinc-500 font-mono font-bold uppercase tracking-[0.2em] -mt-0.5">
                                 Interactive Terminal
                             </div>
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-zinc-400">
+                    <div className="flex items-center gap-1.5 sm:gap-3 text-xs font-bold uppercase tracking-wider text-zinc-400">
                         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981]">
                             <Network className="w-3.5 h-3.5" />
                             Mainnet RPC Active
@@ -184,7 +184,7 @@ export default function ScannerApp() {
                             href="https://aegis-solana.gitbook.io/aegissolana/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
+                            className="h-9 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile shrink-0"
                         >
                             <FileText className="w-3.5 h-3.5" />
                             <span>Docs</span>
@@ -193,7 +193,7 @@ export default function ScannerApp() {
                             href="https://x.com/Aegis_solana"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center"
+                            className="w-9 h-9 rounded-xl border border-[var(--border-subtle)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center shrink-0"
                             title="Official X @Aegis_solana"
                         >
                             <XIcon className="w-4 h-4 text-purple-400" />

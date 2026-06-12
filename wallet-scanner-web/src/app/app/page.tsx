@@ -174,8 +174,8 @@ export default function ScannerApp() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-zinc-400">
-                        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981]">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981]">
                             <Network className="w-3.5 h-3.5" />
                             Mainnet RPC Active
                         </div>
@@ -184,16 +184,16 @@ export default function ScannerApp() {
                             href="https://aegis-solana.gitbook.io/aegissolana/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
+                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] hover:text-purple-400 bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] transition-all duration-150 active-tactile"
                         >
                             <FileText className="w-3.5 h-3.5" />
-                            Docs
+                            <span className="hidden sm:inline">Docs</span>
                         </a>
                         <a
                             href="https://x.com/Aegis_solana"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center"
+                            className="p-1.5 sm:p-2.5 rounded-xl border border-[var(--border-default)] hover:border-[var(--border-hover)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all duration-150 active-tactile flex items-center justify-center"
                             title="Official X @Aegis_solana"
                         >
                             <XIcon className="w-4 h-4 text-purple-400" />

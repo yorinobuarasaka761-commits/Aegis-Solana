@@ -1,0 +1,16 @@
+# Table of contents
+
+* [Introduction](README.md)
+  * [The Problem](introduction/the-problem.md)
+  * [The Solution](introduction/the-solution.md)
+* [Platform Products](platform-products/README.md)
+  * [Aegis Scanner](platform-products/aegis-scanner.md)
+  * [Intelligence Database](platform-products/intelligence-database.md)
+  * [Future Offerings](platform-products/future-offerings.md)
+* [Aegis Tokenomics](tokenomics/README.md)
+  * [Core Parameters](tokenomics/core-parameters.md)
+  * [Token Utility](tokenomics/token-utility.md)
+* [Security and Roadmap](security-and-roadmap/README.md)
+  * [Security Framework](security-and-roadmap/security-framework.md)
+  * [Development Roadmap](security-and-roadmap/roadmap.md)
+* [Legal Disclaimer](legal-disclaimer.md)

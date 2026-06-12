@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Roadmap</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: #121214;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            position: relative;
+            width: 1200px;
+            padding: 80px 100px;
+            background: radial-gradient(circle at top right, rgba(128, 90, 213, 0.15), transparent 50%),
+                        radial-gradient(circle at bottom left, rgba(128, 90, 213, 0.1), transparent 50%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 64px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .header h1 span {
+            color: #a0aec0;
+        }
+
+        .header p {
+            font-size: 16px;
+            letter-spacing: 6px;
+            color: #cbd5e0;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .roadmap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .quarter {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .quarter-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #d6bcfa; /* light purple */
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .quarter-header span {
+            color: #ffffff;
+            margin-left: 10px;
+        }
+
+        .quarter ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .quarter ul li {
+            font-size: 15px;
+            color: #a0aec0;
+            margin-bottom: 12px;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .quarter ul li::before {
+            content: "•";
+            color: #9f7aea; /* purple */
+            font-size: 20px;
+            margin-right: 12px;
+            line-height: 1;
+        }
+
+        .status {
+            display: inline-block;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .achieved {
+            background: rgba(72, 187, 120, 0.2);
+            color: #68d391;
+            border: 1px solid rgba(72, 187, 120, 0.3);
+        }
+        .current {
+            background: rgba(66, 153, 225, 0.2);
+            color: #63b3ed;
+            border: 1px solid rgba(66, 153, 225, 0.3);
+        }
+        .upcoming {
+            background: rgba(237, 137, 54, 0.2);
+            color: #f6ad55;
+            border: 1px solid rgba(237, 137, 54, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>AEGIS <span>ROADMAP</span></h1>
+        <p>Automated Risk Shield</p>
+    </div>
+
+    <div class="roadmap">
+        <div class="quarter">
+            <div class="quarter-header">Q3 2025 <span>Foundation</span> <div class="status achieved">Achieved</div></div>
+            <ul>
+                <li>Deployment of the MVP wallet and token scanner.</li>
+                <li>Launch of the real-time risk scoring engine.</li>
+                <li>Integration of Solana mainnet RPC and the Live Network Ticker.</li>
+                <li>Initial population of the Malicious Wallet Intelligence Database.</li>
+                <li>Official launch of the platform website and community channels.</li>
+            </ul>
+        </div>
+
+        <div class="quarter">
+            <div class="quarter-header">Q4 2025 <span>Intelligence</span> <div class="status current">Current</div></div>
+            <ul>
+                <li>Integration of decentralized token price feeds.</li>
+                <li>Deployment of transaction history and activity timelines per wallet.</li>
+                <li>Significant expansion of the known drainer and scammer database.</li>
+                <li>Implementation of mixer interaction detection algorithms.</li>
+                <li>Upgrade to Helius DAS metadata for superior token data enrichment.</li>
+            </ul>
+        </div>
+
+        <div class="quarter">
+            <div class="quarter-header">Q1 2026 <span>Token Launch</span> <div class="status upcoming">Upcoming</div></div>
+            <ul>
+                <li>Official deployment of the AEGIS token on the Solana network.</li>
+                <li>Verifiable renunciation of mint and freeze authorities.</li>
+                <li>Establishment of the primary liquidity pool.</li>
+                <li>Activation of token-gated premium scanning features.</li>
+                <li>Rollout of the community governance framework for the threat database.</li>
+            </ul>
+        </div>
+
+        <div class="quarter">
+            <div class="quarter-header">Q2 2026 <span>Ecosystem Expansion</span> <div class="status upcoming">Future</div></div>
+            <ul>
+                <li>Launch of the Aegis public API for decentralized applications.</li>
+                <li>Release of the Aegis browser extension for real-time transactional warnings.</li>
+                <li>Deployment of the mobile-optimized scanning application.</li>
+                <li>Introduction of the institutional wallet monitoring dashboard.</li>
+                <li>Strategic planning for cross-chain intelligence expansion.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -161,10 +161,8 @@ export default function Home() {
             <header className="border-b border-white/[0.05] bg-[#070A12]/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
-                            <svg viewBox="0 0 100 100" className="w-4 h-4 fill-white">
-                                <polygon points="50,15 90,85 10,85" />
-                            </svg>
+                        <div className="relative w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.2)] shrink-0">
+                            <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
                             <span className="font-barlow font-bold text-base sm:text-lg tracking-wider text-white">
@@ -850,10 +848,8 @@ export default function Home() {
 
                                     {/* Hover overlay redirects to app */}
                                     <div className="absolute inset-0 bg-[#06080F]/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 flex flex-col items-center justify-center gap-4 text-center p-6">
-                                        <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(139,92,246,0.3)] animate-pulse shrink-0">
-                                            <svg viewBox="0 0 100 100" className="w-6 h-6 fill-white">
-                                                <polygon points="50,15 90,85 10,85" />
-                                            </svg>
+                                        <div className="relative w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(139,92,246,0.3)] animate-pulse shrink-0">
+                                            <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
                                         </div>
                                         <h3 className="font-barlow font-bold text-2xl uppercase tracking-wider text-white">Ready to Scan Live?</h3>
                                         <p className="text-xs text-zinc-400 max-w-xs font-mono">Launch the scanner terminal to perform audits on mainnet</p>
@@ -887,11 +883,9 @@ export default function Home() {
             <footer className="border-t border-white/[0.05] bg-[#06080F] py-12 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center border border-white/5 shrink-0">
-                                            <svg viewBox="0 0 100 100" className="w-2.5 h-2.5 fill-white">
-                                                <polygon points="50,15 90,85 10,85" />
-                                            </svg>
-                                        </div>
+                        <div className="relative w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center border border-white/5 shrink-0">
+                            <img src="/logo.png" alt="Aegis Logo" className="w-full h-full object-cover" />
+                        </div>
                         <span className="font-barlow font-bold text-sm tracking-wider text-white">
                             AEGIS<span className="text-zinc-500">SOLANA</span>
                         </span>

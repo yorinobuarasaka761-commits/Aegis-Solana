@@ -57,3 +57,6 @@ debug-*.ts
 *.tsbuildinfo
 next-env.d.ts
 
+
+.vercel
+.env*

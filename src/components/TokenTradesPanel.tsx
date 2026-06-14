@@ -1,7 +1,7 @@
 "use client";
 
 import { TokenTrade } from "@/lib/types";
-import { TrendingUp, ExternalLink, Copy, Check, ShoppingCart, RefreshCw, AlertCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, ExternalLink, Copy, Check, ShoppingCart, RefreshCw, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 interface TokenTradesPanelProps {
@@ -60,7 +60,7 @@ function dexColor(name: string) {
 function SkeletonRow({ idx }: { idx: number }) {
   return (
     <tr className="border-b border-zinc-800/20" style={{ opacity: 1 - idx * 0.15 }}>
-      {[40, 140, 80, 70, 60, 70, 24].map((w, i) => (
+      {[40, 50, 140, 80, 70, 60, 70, 24].map((w, i) => (
         <td key={i} className="px-4 py-4">
           <div className={`h-3 rounded-full bg-zinc-800 animate-pulse`} style={{ width: w }} />
         </td>
@@ -104,9 +104,9 @@ export default function TokenTradesPanel({
         ) : (
           <>
             <ShoppingCart className="w-12 h-12 text-zinc-800 animate-pulse" />
-            <h4 className="text-zinc-400 font-bold">No Recent Buys Found</h4>
+            <h4 className="text-zinc-400 font-bold">No Recent Activity Found</h4>
             <p className="text-xs text-zinc-600 max-w-xs">
-              No liquidity pool detected for this token, or no buy transactions found in recent pool history.
+              No liquidity pool detected for this token, or no transactions found in recent pool history.
             </p>
           </>
         )}
@@ -125,9 +125,9 @@ export default function TokenTradesPanel({
       {/* Header */}
       <div className="px-6 py-4 border-b border-zinc-800/50 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2.5">
-          <TrendingUp className="w-5 h-5 text-emerald-400" />
+          <TrendingUp className="w-5 h-5 text-brand-primary" />
           <h3 className="text-sm font-extrabold uppercase tracking-widest text-zinc-300">
-            Recent Buys
+            Recent Transactions
           </h3>
           <span className="text-xs font-bold text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
             {trades.length} trades
@@ -171,11 +171,12 @@ export default function TokenTradesPanel({
           <thead>
             <tr className="border-b border-zinc-800/50 bg-zinc-900/30">
               <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">#</th>
-              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Buyer Wallet</th>
+              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Type</th>
+              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500">Trader Wallet</th>
               <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500 text-right">
-                {tokenSymbol} Received
+                Amount
               </th>
-              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500 text-right">SOL Spent</th>
+              <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500 text-right">SOL Value</th>
               {priceUsd && priceUsd > 0 && (
                 <th className="px-4 py-3 text-[10px] font-extrabold uppercase tracking-widest text-zinc-500 text-right">USD Value</th>
               )}
@@ -193,11 +194,28 @@ export default function TokenTradesPanel({
                     <tr
                       key={trade.signature}
                       className={`hover:bg-white/[0.025] transition-colors group ${
-                        idx === 0 && !isRefreshing ? "bg-emerald-500/[0.03]" : ""
+                        idx === 0 && !isRefreshing
+                          ? trade.type === "sell"
+                            ? "bg-rose-500/[0.03]"
+                            : "bg-emerald-500/[0.03]"
+                          : ""
                       }`}
                     >
                       {/* Rank */}
                       <td className="px-5 py-4 text-xs text-zinc-600 font-mono">{idx + 1}</td>
+
+                      {/* Type Badge */}
+                      <td className="px-4 py-4 text-xs font-mono font-bold uppercase tracking-wider">
+                        {trade.type === "sell" ? (
+                          <span className="inline-flex items-center gap-1 text-rose-500">
+                            <TrendingDown className="w-3.5 h-3.5 shrink-0 animate-pulse" /> Sell
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-emerald-400">
+                            <TrendingUp className="w-3.5 h-3.5 shrink-0 animate-pulse" /> Buy
+                          </span>
+                        )}
+                      </td>
 
                       {/* Buyer */}
                       <td className="px-4 py-4">
@@ -226,15 +244,15 @@ export default function TokenTradesPanel({
                         </div>
                       </td>
 
-                      {/* Token received */}
+                      {/* Token received / sent */}
                       <td className="px-4 py-4 text-right">
-                        <div className="font-mono text-sm font-bold text-emerald-400">
-                          +{fmtNum(trade.tokenAmount, { maximumFractionDigits: 2 })}
+                        <div className={`font-mono text-sm font-bold ${trade.type === "sell" ? "text-rose-500" : "text-emerald-400"}`}>
+                          {trade.type === "sell" ? "-" : "+"}{fmtNum(trade.tokenAmount, { maximumFractionDigits: 2 })}
                         </div>
                         <div className="text-[9px] text-zinc-600 font-mono mt-0.5">{trade.tokenSymbol}</div>
                       </td>
 
-                      {/* SOL spent */}
+                      {/* SOL spent / received */}
                       <td className="px-4 py-4 text-right">
                         {trade.solAmount !== undefined && trade.solAmount > 0 ? (
                           <div className="font-mono text-sm text-zinc-300">
@@ -297,7 +315,7 @@ export default function TokenTradesPanel({
       {/* Footer */}
       <div className="px-6 py-3 border-t border-zinc-800/30 flex items-center justify-between">
         <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">
-          AMM pool ledger · On-chain verified · Buys only
+          AMM pool ledger · On-chain verified · Buys & Sells
         </span>
         <div className="flex items-center gap-1.5">
           {isRefreshing && (

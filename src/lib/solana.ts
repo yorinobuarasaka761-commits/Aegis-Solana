@@ -743,29 +743,74 @@ export async function fetchTokenTrades(
             if (trades.length >= 10) break;
             if (htx.type !== "SWAP" || htx.transactionError) continue;
 
-            // Find the entry where our token was RECEIVED by a non-pool account
-            const tokenIn = htx.tokenTransfers?.find(
-              (tt) =>
-                tt.mint === tokenAddress &&
-                tt.tokenAmount > 0 &&
-                tt.toUserAccount &&
-                tt.toUserAccount !== pairAddress
+            // Find any token transfer of our token
+            const baseTransfer = htx.tokenTransfers?.find(
+              (tt) => tt.mint === tokenAddress && tt.tokenAmount > 0
             );
-            if (!tokenIn) continue;
+            if (!baseTransfer) continue;
 
-            const buyerAddress = tokenIn.toUserAccount;
-            const tokenAmount = tokenIn.tokenAmount;
+            let traderAddress = "";
+            let tokenAmount = 0;
+            let tradeType: "buy" | "sell" = "buy";
 
-            // Calculate net SOL spent by the buyer (sent minus any received back)
+            // If we have a pairAddress, use it to determine direction:
+            if (pairAddress) {
+              if (baseTransfer.toUserAccount === pairAddress) {
+                // Sent to pool -> SELL
+                tradeType = "sell";
+                traderAddress = baseTransfer.fromUserAccount;
+                tokenAmount = baseTransfer.tokenAmount;
+              } else if (baseTransfer.fromUserAccount === pairAddress) {
+                // Received from pool -> BUY
+                tradeType = "buy";
+                traderAddress = baseTransfer.toUserAccount;
+                tokenAmount = baseTransfer.tokenAmount;
+              } else {
+                // Fallback: If neither matches pairAddress, check if we can identify via native transfers
+                const hasSolMove = htx.nativeTransfers?.find(
+                  (nt) => nt.fromUserAccount === baseTransfer.toUserAccount || nt.toUserAccount === baseTransfer.toUserAccount
+                );
+                if (hasSolMove) {
+                  tradeType = "buy";
+                  traderAddress = baseTransfer.toUserAccount;
+                  tokenAmount = baseTransfer.tokenAmount;
+                } else {
+                  tradeType = "sell";
+                  traderAddress = baseTransfer.fromUserAccount;
+                  tokenAmount = baseTransfer.tokenAmount;
+                }
+              }
+            } else {
+              // No pairAddress (fallback): check SOL movement to identify the trader
+              const hasSolMove = htx.nativeTransfers?.find(
+                (nt) => nt.fromUserAccount === baseTransfer.toUserAccount || nt.toUserAccount === baseTransfer.toUserAccount
+              );
+              if (hasSolMove) {
+                tradeType = "buy";
+                traderAddress = baseTransfer.toUserAccount;
+                tokenAmount = baseTransfer.tokenAmount;
+              } else {
+                tradeType = "sell";
+                traderAddress = baseTransfer.fromUserAccount;
+                tokenAmount = baseTransfer.tokenAmount;
+              }
+            }
+
+            if (!traderAddress) continue;
+
+            // Calculate net SOL spent or received by the trader:
             const solSent = htx.nativeTransfers
-              ?.filter((nt) => nt.fromUserAccount === buyerAddress)
+              ?.filter((nt) => nt.fromUserAccount === traderAddress)
               .reduce((s, nt) => s + nt.amount, 0) ?? 0;
             const solBack = htx.nativeTransfers
-              ?.filter((nt) => nt.toUserAccount === buyerAddress)
+              ?.filter((nt) => nt.toUserAccount === traderAddress)
               .reduce((s, nt) => s + nt.amount, 0) ?? 0;
-            const netLamports = solSent - solBack;
+            
+            // For a buy, we look at net SOL spent (sent - back)
+            // For a sell, we look at net SOL received (back - sent)
+            const netLamports = tradeType === "buy" ? (solSent - solBack) : (solBack - solSent);
 
-            // Require at least 0.0005 SOL net spend (filters noise / fee-only txs)
+            // Require at least 0.0005 SOL net movement (filters noise / fee-only txs)
             if (netLamports < 500_000) continue;
 
             // Pretty-format the DEX name for display
@@ -776,12 +821,12 @@ export async function fetchTokenTrades(
             trades.push({
               signature: htx.signature,
               timestamp: new Date(htx.timestamp * 1000).toLocaleString(),
-              buyer: buyerAddress,
+              buyer: traderAddress,
               tokenAmount,
               tokenSymbol,
               solAmount: netLamports / LAMPORTS_PER_SOL,
               dexName,
-              type: "buy",
+              type: tradeType,
             });
           }
 
@@ -879,34 +924,49 @@ export async function fetchTokenTrades(
         return pk?.toBase58?.() ?? "";
       });
 
-      // Buyer = account that GAINED the token AND spent SOL (negative SOL delta)
-      let buyerAddress = "";
-      let tokenReceived = 0;
-      let solSpent: number | undefined;
+      // Buyer/Seller detection: Gained tokens & lost SOL -> BUY; Lost tokens & gained SOL -> SELL
+      let traderAddress = "";
+      let tokenAmount = 0;
+      let solAmount = 0;
+      let tradeType: "buy" | "sell" = "buy";
 
       for (const [owner, tokenDelta] of ownerDelta) {
-        if (tokenDelta <= 0.000001) continue;
         const ownerIdx = accountKeys.indexOf(owner);
         if (ownerIdx === -1 || !tx.meta) continue;
+
         const solDelta =
           (tx.meta.postBalances[ownerIdx] - tx.meta.preBalances[ownerIdx]) / LAMPORTS_PER_SOL;
-        if (solDelta < -0.0005 && tokenDelta > tokenReceived) {
-          tokenReceived = tokenDelta;
-          buyerAddress = owner;
-          solSpent = Math.abs(solDelta);
+
+        if (tokenDelta > 0.000001 && solDelta < -0.0005) {
+          // Gained tokens AND spent SOL -> BUY
+          if (tokenDelta > tokenAmount) {
+            tokenAmount = tokenDelta;
+            traderAddress = owner;
+            solAmount = Math.abs(solDelta);
+            tradeType = "buy";
+          }
+        } else if (tokenDelta < -0.000001 && solDelta > 0.0005) {
+          // Lost tokens AND gained SOL -> SELL
+          const absDelta = Math.abs(tokenDelta);
+          if (absDelta > tokenAmount) {
+            tokenAmount = absDelta;
+            traderAddress = owner;
+            solAmount = solDelta;
+            tradeType = "sell";
+          }
         }
       }
 
-      if (!buyerAddress || tokenReceived <= 0) continue;
+      if (!traderAddress || tokenAmount <= 0) continue;
 
       trades.push({
         signature: wrapper.signature,
         timestamp,
-        buyer: buyerAddress,
-        tokenAmount: tokenReceived,
+        buyer: traderAddress,
+        tokenAmount,
         tokenSymbol,
-        solAmount: solSpent,
-        type: "buy",
+        solAmount,
+        type: tradeType,
       });
     }
   } catch (err) {

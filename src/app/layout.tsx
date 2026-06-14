@@ -35,6 +35,7 @@ export default function RootLayout({
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body
         className={`${ibmPlexSans.variable} ${barlowCondensed.variable} ${ibmPlexMono.variable} antialiased relative overflow-x-hidden`}
+        suppressHydrationWarning
       >
         <ThemeProvider>
           {/* --- Global Animated Background --- */}

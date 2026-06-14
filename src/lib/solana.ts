@@ -1,6 +1,6 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
-import { AddressType, WalletData, TokenData, TokenHolding, MaliciousInteraction } from "./types";
+import { AddressType, WalletData, TokenData, TokenHolding, MaliciousInteraction, TransactionActivity, TokenTrade } from "./types";
 import { buildTokenRiskFlags, buildWalletRiskFlags, assessTokenRisk } from "./riskScoring";
 import { MALICIOUS_ADDRESSES } from "./maliciousAddresses";
 
@@ -390,6 +390,7 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
 
   const mintAuthority  = mint.mintAuthority?.toBase58() ?? null;
   const freezeAuthority = mint.freezeAuthority?.toBase58() ?? null;
+  const updateAuthority = await getUpdateAuthority(address, connection);
   const supply = Number(mint.supply) / Math.pow(10, mint.decimals);
 
   let name = "Unknown Token", symbol = "???", isVerified = false;
@@ -433,7 +434,7 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
     } catch {}
   }
 
-  let priceUsd = 0, volume24h = 0, liquidity = 0, fdv = 0, dexUrl = "";
+  let priceUsd = 0, volume24h = 0, liquidity = 0, fdv = 0, dexUrl = "", pairAddress = "";
   try {
     const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
     if (r.ok) {
@@ -444,6 +445,7 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
         liquidity?: { usd?: number };
         fdv?: number;
         url: string;
+        pairAddress?: string;
         baseToken?: { name?: string; symbol?: string };
         info?: { imageUrl?: string };
       }
@@ -456,6 +458,7 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
         liquidity = p.liquidity?.usd || 0;
         fdv       = p.fdv || 0;
         dexUrl    = p.url;
+        pairAddress = p.pairAddress || "";
         if (!isVerified && p.baseToken?.name) { name = p.baseToken.name; symbol = p.baseToken.symbol; }
         if (!metadataUri && p.info?.imageUrl) { metadataUri = p.info.imageUrl; }
       }
@@ -465,9 +468,411 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
   return {
     name, symbol,
     decimals: mint.decimals,
-    supply, mintAuthority, freezeAuthority,
+    supply, mintAuthority, freezeAuthority, updateAuthority,
     isVerified, metadataUri,
-    riskFlags: buildTokenRiskFlags({ mintAuthority, freezeAuthority, supply, isVerified }),
+    riskFlags: buildTokenRiskFlags({ mintAuthority, freezeAuthority, updateAuthority, supply, isVerified }),
     priceUsd, volume24h, liquidity, fdv, dexUrl,
+    pairAddress: pairAddress || undefined,
   };
+}
+
+export async function getUpdateAuthority(
+  mintAddress: string,
+  connection: Connection
+): Promise<string | null> {
+  try {
+    const mint = new PublicKey(mintAddress);
+    const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28ej1Al56LdhWYFCG6G4jrh5CjCwh5");
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        METADATA_PROGRAM_ID.toBuffer(),
+        mint.toBuffer(),
+      ],
+      METADATA_PROGRAM_ID
+    );
+    const info = await connection.getAccountInfo(pda);
+    if (!info || !info.data || info.data.length < 33) return null;
+    const updateAuthority = new PublicKey(info.data.slice(1, 33));
+    return updateAuthority.toBase58();
+  } catch (e) {
+    console.error("Failed to fetch update authority:", e);
+    return null;
+  }
+}
+
+export async function fetchRecentActivity(
+  address: string,
+  connection: Connection
+): Promise<TransactionActivity[]> {
+  const pubkey = new PublicKey(address);
+  const activities: TransactionActivity[] = [];
+
+  try {
+    const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 10 });
+    if (!signatures || signatures.length === 0) return [];
+
+    const sigStrings = signatures.map((s) => s.signature);
+    const txs = await connection.getParsedTransactions(sigStrings, { maxSupportedTransactionVersion: 0 });
+
+    for (let i = 0; i < txs.length; i++) {
+      const tx = txs[i];
+      if (!tx) continue;
+      
+      const sigInfo = signatures[i];
+      const signature = sigInfo.signature;
+      const timestamp = sigInfo.blockTime
+        ? new Date(sigInfo.blockTime * 1000).toLocaleString()
+        : "Unknown time";
+      const status = tx.meta?.err ? "failed" : "success";
+
+      let type: TransactionActivity["type"] = "contract_interaction";
+      let typeName = "Contract Interaction";
+      let amount: string | undefined;
+
+      const accountKeys = tx.transaction.message.accountKeys;
+      const myIndex = accountKeys.findIndex((ak) => {
+        const pk = ak.pubkey || ak;
+        return pk && typeof pk.toBase58 === "function" && pk.toBase58() === address;
+      });
+
+      if (myIndex !== -1 && tx.meta) {
+        const preSol = tx.meta.preBalances[myIndex];
+        const postSol = tx.meta.postBalances[myIndex];
+        const fee = tx.meta.fee;
+        const solChange = (postSol - preSol) / LAMPORTS_PER_SOL;
+        const feeAdjustedChange = myIndex === 0 ? solChange + (fee / LAMPORTS_PER_SOL) : solChange;
+
+        const tokenChanges: Array<{ mint: string; change: number; symbol?: string }> = [];
+        const preToken = tx.meta.preTokenBalances ?? [];
+        const postToken = tx.meta.postTokenBalances ?? [];
+
+        const allMints = Array.from(new Set([
+          ...preToken.map((t) => t.mint),
+          ...postToken.map((t) => t.mint),
+        ]));
+
+        for (const mint of allMints) {
+          const myPre = preToken.find((t) => t.owner === address && t.mint === mint);
+          const myPost = postToken.find((t) => t.owner === address && t.mint === mint);
+          const preAmt = myPre?.uiTokenAmount.uiAmount ?? 0;
+          const postAmt = myPost?.uiTokenAmount.uiAmount ?? 0;
+          const diff = postAmt - preAmt;
+          if (Math.abs(diff) > 0.000001) {
+            const WELL_KNOWN_SYMBOLS: Record<string, string> = {
+              "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "USDC",
+              "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": "USDT",
+              "So11111111111111111111111111111111111111112": "SOL",
+              "DezXAZ8z7PnrFcPybznJHzRmjJ89qYYea1R8k1tKBpfa": "BONK",
+            };
+            const symbol = WELL_KNOWN_SYMBOLS[mint] ?? `${mint.slice(0, 4)}...${mint.slice(-4)}`;
+            tokenChanges.push({ mint, change: diff, symbol });
+          }
+        }
+
+        if (tokenChanges.length >= 2 || (Math.abs(feeAdjustedChange) > 0.001 && tokenChanges.length >= 1)) {
+          type = "swap";
+          typeName = "Token Swap";
+          
+          let fromText = "";
+          let toText = "";
+
+          if (tokenChanges.length >= 2) {
+            const dec = tokenChanges.find((tc) => tc.change < 0);
+            const inc = tokenChanges.find((tc) => tc.change > 0);
+            if (dec && inc) {
+              fromText = `${Math.abs(dec.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${dec.symbol || "Token"}`;
+              toText = `${inc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${inc.symbol || "Token"}`;
+            }
+          } else if (tokenChanges.length === 1 && Math.abs(feeAdjustedChange) > 0.001) {
+            const tc = tokenChanges[0];
+            if (feeAdjustedChange < 0 && tc.change > 0) {
+              fromText = `${Math.abs(feeAdjustedChange).toFixed(4)} SOL`;
+              toText = `${tc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
+            } else if (feeAdjustedChange > 0 && tc.change < 0) {
+              fromText = `${Math.abs(tc.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
+              toText = `${feeAdjustedChange.toFixed(4)} SOL`;
+            }
+          }
+
+          if (fromText && toText) {
+            amount = `${fromText} → ${toText}`;
+          } else {
+            amount = "Swap Executed";
+          }
+        } else if (tokenChanges.length === 1) {
+          const tc = tokenChanges[0];
+          if (tc.change > 0) {
+            type = "transfer_in";
+            typeName = "Token Received";
+            amount = `+${tc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
+          } else {
+            type = "transfer_out";
+            typeName = "Token Sent";
+            amount = `-${Math.abs(tc.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
+          }
+        } else if (Math.abs(feeAdjustedChange) > 0.001) {
+          if (feeAdjustedChange > 0) {
+            type = "transfer_in";
+            typeName = "SOL Received";
+            amount = `+${feeAdjustedChange.toFixed(4)} SOL`;
+          } else {
+            type = "transfer_out";
+            typeName = "SOL Sent";
+            amount = `-${Math.abs(feeAdjustedChange).toFixed(4)} SOL`;
+          }
+        }
+      }
+
+      if (type === "contract_interaction") {
+        const programIds = tx.transaction.message.instructions.map((i) => {
+          const pid = i.programId || (i as { programId?: PublicKey }).programId;
+          return pid ? pid.toBase58() : "";
+        }).filter(Boolean);
+
+        const knownPrograms: Record<string, string> = {
+          "JUP6Lgp5gZXrNrTRN7QMw45zOB66g1B36t1wDLauC3o": "Jupiter Swap",
+          "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8": "Raydium V4 Swap",
+          "routehkwwNzjRCn9y5tTE4z2nC79B2KxV8mR4wD3m2": "Raydium Router",
+          "Orcert2EB7a1b4W1FwJEDmeZaEsKhTczbd424B2CgBq": "Orca Swap",
+          "6EF8rrecthR5Dkzonr17F5vkR6qiYqrqbGvbuJ5PE9JY": "pump.fun Interaction",
+        };
+
+        let foundKnown = false;
+        for (const pid of programIds) {
+          if (knownPrograms[pid]) {
+            typeName = knownPrograms[pid];
+            if (typeName.includes("Swap")) {
+              type = "swap";
+            }
+            foundKnown = true;
+            break;
+          }
+        }
+
+        if (!foundKnown && programIds.length > 0) {
+          const pid = programIds[0];
+          typeName = `Interact with ${pid.slice(0, 6)}...${pid.slice(-4)}`;
+        }
+      }
+
+      activities.push({
+        signature,
+        timestamp,
+        type,
+        typeName,
+        amount,
+        status,
+      });
+    }
+  } catch (err) {
+    console.error("fetchRecentActivity failed:", err);
+  }
+
+  return activities;
+}
+
+/**
+ * Fetch the 10 most recent BUY transactions for a token.
+ *
+ * ── Strategy 1 (primary): Helius Enhanced Transaction API ──────────────────
+ *   Helius pre-parses every swap with a `source` DEX tag and structured
+ *   tokenTransfers / nativeTransfers arrays. Works for ALL DEXes on Solana:
+ *   Raydium V4 & CLMM, PumpSwap, Orca, Jupiter aggregated routes, Meteora,
+ *   Lifinity, GooseFX, and more. No per-DEX parsing logic required.
+ *
+ * ── Strategy 2 (fallback): DEX-agnostic RPC parsing ───────────────────────
+ *   Falls back to raw Solana RPC if Helius API key is unavailable.
+ *   Buyer detection: an account that GAINED the base token AND SPENT SOL
+ *   in the same transaction — reliable across any AMM structure.
+ */
+export async function fetchTokenTrades(
+  tokenAddress: string,
+  tokenSymbol: string,
+  pairAddress: string | null,
+  connection: Connection
+): Promise<TokenTrade[]> {
+  const trades: TokenTrade[] = [];
+  // Use pool address if available; token mint itself works as a fallback for bonding-curve tokens
+  const targetAddress = pairAddress ?? tokenAddress;
+
+  // ── Strategy 1: Helius Enhanced Transaction API ─────────────────────────
+  if (HELIUS_API_KEY) {
+    try {
+      const targetPubkey = new PublicKey(targetAddress);
+      const sigs = await connection.getSignaturesForAddress(targetPubkey, { limit: 50 });
+
+      if (sigs && sigs.length > 0) {
+        // Helius batch enhanced transaction parser (max 100 per call)
+        const sigBatch = sigs.map((s) => s.signature).slice(0, 50);
+
+        const r = await fetch(
+          `https://api.helius.xyz/v0/transactions?api-key=${HELIUS_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transactions: sigBatch }),
+          }
+        );
+
+        if (r.ok) {
+          interface HeliusTokenTransfer {
+            fromUserAccount: string;
+            toUserAccount: string;
+            mint: string;
+            tokenAmount: number;
+          }
+          interface HeliusNativeTransfer {
+            fromUserAccount: string;
+            toUserAccount: string;
+            amount: number; // lamports
+          }
+          interface HeliusTx {
+            signature: string;
+            timestamp: number;
+            type: string;     // "SWAP", "TRANSFER", etc.
+            source: string;   // "RAYDIUM", "PUMP_FUN", "ORCA_V2", "JUPITER", etc.
+            transactionError: unknown;
+            tokenTransfers?: HeliusTokenTransfer[];
+            nativeTransfers?: HeliusNativeTransfer[];
+          }
+
+          const heliusTxs: HeliusTx[] = await r.json();
+
+          for (const htx of heliusTxs) {
+            if (trades.length >= 10) break;
+            if (htx.type !== "SWAP" || htx.transactionError) continue;
+
+            // Find the entry where our token was RECEIVED by a non-pool account
+            const tokenIn = htx.tokenTransfers?.find(
+              (tt) =>
+                tt.mint === tokenAddress &&
+                tt.tokenAmount > 0 &&
+                tt.toUserAccount &&
+                tt.toUserAccount !== pairAddress
+            );
+            if (!tokenIn) continue;
+
+            const buyerAddress = tokenIn.toUserAccount;
+            const tokenAmount = tokenIn.tokenAmount;
+
+            // Calculate net SOL spent by the buyer (sent minus any received back)
+            const solSent = htx.nativeTransfers
+              ?.filter((nt) => nt.fromUserAccount === buyerAddress)
+              .reduce((s, nt) => s + nt.amount, 0) ?? 0;
+            const solBack = htx.nativeTransfers
+              ?.filter((nt) => nt.toUserAccount === buyerAddress)
+              .reduce((s, nt) => s + nt.amount, 0) ?? 0;
+            const netLamports = solSent - solBack;
+
+            // Require at least 0.0005 SOL net spend (filters noise / fee-only txs)
+            if (netLamports < 500_000) continue;
+
+            // Pretty-format the DEX name for display
+            const dexName = htx.source
+              ? htx.source.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+              : "Unknown DEX";
+
+            trades.push({
+              signature: htx.signature,
+              timestamp: new Date(htx.timestamp * 1000).toLocaleString(),
+              buyer: buyerAddress,
+              tokenAmount,
+              tokenSymbol,
+              solAmount: netLamports / LAMPORTS_PER_SOL,
+              dexName,
+              type: "buy",
+            });
+          }
+
+          if (trades.length > 0) return trades;
+        }
+      }
+    } catch (err) {
+      console.error("Helius enhanced trade parsing failed — falling back to RPC:", err);
+    }
+  }
+
+  // ── Strategy 2: DEX-agnostic RPC fallback ───────────────────────────────
+  // Requires a pool address to know which accounts to scan
+  if (!pairAddress) return trades;
+
+  try {
+    const poolPubkey = new PublicKey(pairAddress);
+    const signatures = await connection.getSignaturesForAddress(poolPubkey, { limit: 80 });
+    if (!signatures || signatures.length === 0) return trades;
+
+    const sigStrings = signatures.map((s) => s.signature);
+    const txs = await connection.getParsedTransactions(sigStrings, {
+      maxSupportedTransactionVersion: 0,
+    });
+
+    for (let i = 0; i < txs.length && trades.length < 10; i++) {
+      const tx = txs[i];
+      if (!tx || tx.meta?.err) continue;
+
+      const sigInfo = signatures[i];
+      const timestamp = sigInfo.blockTime
+        ? new Date(sigInfo.blockTime * 1000).toLocaleString()
+        : "Unknown";
+
+      const preTokens = tx.meta?.preTokenBalances ?? [];
+      const postTokens = tx.meta?.postTokenBalances ?? [];
+
+      // owner → net base-token delta
+      const ownerDelta = new Map<string, number>();
+      for (const pre of preTokens) {
+        if (pre.mint !== tokenAddress) continue;
+        const owner = pre.owner ?? "";
+        if (!owner) continue;
+        ownerDelta.set(owner, (ownerDelta.get(owner) ?? 0) - (pre.uiTokenAmount.uiAmount ?? 0));
+      }
+      for (const post of postTokens) {
+        if (post.mint !== tokenAddress) continue;
+        const owner = post.owner ?? "";
+        if (!owner) continue;
+        ownerDelta.set(owner, (ownerDelta.get(owner) ?? 0) + (post.uiTokenAmount.uiAmount ?? 0));
+      }
+      if (ownerDelta.size === 0) continue;
+
+      const accountKeys = tx.transaction.message.accountKeys.map((ak) => {
+        const pk = (ak as { pubkey?: PublicKey }).pubkey ?? (ak as unknown as PublicKey);
+        return pk?.toBase58?.() ?? "";
+      });
+
+      // Buyer = account that GAINED the token AND spent SOL (negative SOL delta)
+      let buyerAddress = "";
+      let tokenReceived = 0;
+      let solSpent: number | undefined;
+
+      for (const [owner, tokenDelta] of ownerDelta) {
+        if (tokenDelta <= 0.000001) continue;
+        const ownerIdx = accountKeys.indexOf(owner);
+        if (ownerIdx === -1 || !tx.meta) continue;
+        const solDelta =
+          (tx.meta.postBalances[ownerIdx] - tx.meta.preBalances[ownerIdx]) / LAMPORTS_PER_SOL;
+        if (solDelta < -0.0005 && tokenDelta > tokenReceived) {
+          tokenReceived = tokenDelta;
+          buyerAddress = owner;
+          solSpent = Math.abs(solDelta);
+        }
+      }
+
+      if (!buyerAddress || tokenReceived <= 0) continue;
+
+      trades.push({
+        signature: sigInfo.signature,
+        timestamp,
+        buyer: buyerAddress,
+        tokenAmount: tokenReceived,
+        tokenSymbol,
+        solAmount: solSpent,
+        type: "buy",
+      });
+    }
+  } catch (err) {
+    console.error("fetchTokenTrades RPC fallback failed:", err);
+  }
+
+  return trades;
 }

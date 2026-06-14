@@ -111,11 +111,13 @@ export function assessTokenRisk(isFrozen: boolean, meta: unknown): "SAFE" | "CAU
 export function buildTokenRiskFlags({
   mintAuthority,
   freezeAuthority,
+  updateAuthority,
   supply,
   isVerified,
 }: {
   mintAuthority: string | null;
   freezeAuthority: string | null;
+  updateAuthority: string | null;
   supply: number;
   isVerified: boolean;
 }): RiskFlag[] {
@@ -131,7 +133,7 @@ export function buildTokenRiskFlags({
     });
   } else {
     flags.push({
-      label: "Mint authority renounced",
+      label: "Mint authority is inactive",
       severity: "INFO",
       description: "Token supply is fixed.",
     });
@@ -147,9 +149,36 @@ export function buildTokenRiskFlags({
     });
   } else {
     flags.push({
-      label: "Freeze authority renounced",
+      label: "Freeze authority is inactive",
       severity: "INFO",
       description: "Token balances cannot be frozen.",
+    });
+  }
+
+  if (updateAuthority && updateAuthority !== "None") {
+    flags.push({
+      label: "Active Update Authority",
+      severity: "WARNING",
+      description: "Token metadata (name, symbol, logo) can be changed by the creator.",
+    });
+  } else {
+    flags.push({
+      label: "Update authority is inactive",
+      severity: "INFO",
+      description: "Token metadata is locked and cannot be modified.",
+    });
+  }
+
+  const allRevoked = 
+    (!mintAuthority || mintAuthority === "None") &&
+    (!freezeAuthority || freezeAuthority === "None") &&
+    (!updateAuthority || updateAuthority === "None");
+
+  if (allRevoked) {
+    flags.push({
+      label: "All Authorities Renounced",
+      severity: "INFO",
+      description: "Mint, freeze, and update authorities are all inactive/renounced, ensuring high structural safety.",
     });
   }
 

@@ -6,8 +6,11 @@ import RiskGauge from "@/components/RiskGauge";
 import WalletResults from "@/components/WalletResults";
 import TokenResults from "@/components/TokenResults";
 import HistoryPanel, { HistoryItem } from "@/components/HistoryPanel";
+import HoldingsList from "@/components/HoldingsList";
+import TransactionTimeline from "@/components/TransactionTimeline";
+import TokenTradesPanel from "@/components/TokenTradesPanel";
 import { 
-  Database, Network, FileText, AlertCircle, ArrowLeft
+  Database, Network, FileText, AlertCircle, ArrowLeft, Activity
 } from "lucide-react";
 import { ScanResult } from "@/lib/types";
 import Link from "next/link";
@@ -28,6 +31,8 @@ const DEFAULT_PRELOADED_RESULT: ScanResult = {
   riskScore: 15,
   riskLabel: "LOW",
   scannedAt: new Date().toISOString(),
+  recentActivity: [],
+  tokenTrades: [], // Populated live via /api/trades — no fake data
   token: {
     name: "Staring Cat",
     symbol: "Gusic",
@@ -35,6 +40,7 @@ const DEFAULT_PRELOADED_RESULT: ScanResult = {
     supply: 999994383.44,
     mintAuthority: null,
     freezeAuthority: null,
+    updateAuthority: null,
     isVerified: false,
     metadataUri: "https://cdn.dexscreener.com/cms/images/WQYDu_UesChDqbuz?width=800&height=800&quality=95&format=auto",
     priceUsd: 0.00006881,
@@ -42,22 +48,11 @@ const DEFAULT_PRELOADED_RESULT: ScanResult = {
     liquidity: 27573.79,
     fdv: 68818,
     dexUrl: "https://dexscreener.com/solana/69dnb69d4pqfbe3x45zqd3q3ub1oambsxzizvnyixahh",
+    pairAddress: "69dnb69d4pqfbe3x45zqd3q3ub1oambsxzizvnyixahh",
     riskFlags: [
-      {
-        label: "Mint authority renounced",
-        severity: "INFO",
-        description: "Token supply is fixed."
-      },
-      {
-        label: "Freeze authority renounced",
-        severity: "INFO",
-        description: "Token balances cannot be frozen."
-      },
-      {
-        label: "Token not in Jupiter verified list",
-        severity: "WARNING",
-        description: "This token is not strictly verified by Jupiter."
-      }
+      { label: "Mint authority renounced", severity: "INFO", description: "Token supply is fixed." },
+      { label: "Freeze authority renounced", severity: "INFO", description: "Token balances cannot be frozen." },
+      { label: "Token not in Jupiter verified list", severity: "WARNING", description: "This token is not strictly verified by Jupiter." }
     ]
   }
 };
@@ -69,7 +64,51 @@ export default function ScannerApp() {
     const [error, setError] = useState<string | null>(null);
     
     // UI Navigation States
-    const [activeTab, setActiveTab] = useState<"audit" | "holdings">("audit");
+    const [activeTab, setActiveTab] = useState<"audit" | "holdings" | "activity">("audit");
+
+    // Trade refresh state
+    const [tradesRefreshedAt, setTradesRefreshedAt] = useState<Date | null>(null);
+    const [isRefreshingTrades, setIsRefreshingTrades] = useState(false);
+
+    // ── Auto-refresh token trades every 30 seconds ─────────────────────────
+    useEffect(() => {
+        if (!result || result.type !== "token" || activeTab !== "activity") return;
+
+        const tokenAddress = result.address;
+        const pairAddress = result.token?.pairAddress;
+        const tokenSymbol = result.token?.symbol || "TOKEN";
+
+        const fetchTrades = async () => {
+            setIsRefreshingTrades(true);
+            try {
+                const res = await fetch("/api/trades", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tokenAddress, pairAddress, tokenSymbol }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.trades && Array.isArray(data.trades)) {
+                        setResult((prev) => prev ? { ...prev, tokenTrades: data.trades } : prev);
+                        setTradesRefreshedAt(new Date());
+                    }
+                }
+            } catch (e) {
+                console.error("Trade refresh failed:", e);
+            } finally {
+                setIsRefreshingTrades(false);
+            }
+        };
+
+        // Fetch immediately when switching to activity tab
+        fetchTrades();
+
+        // Then poll every 30 seconds
+        const interval = setInterval(fetchTrades, 30_000);
+        return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [result?.address, activeTab, result?.type]);
+    // ──────────────────────────────────────────────────────────────────────
 
     // Load history on mount
     useEffect(() => {
@@ -89,7 +128,7 @@ export default function ScannerApp() {
         localStorage.setItem("aegis_scan_history", JSON.stringify(newHistory));
     };
 
-    const handleScan = async (address: string) => {
+    const handleScan = async (address: string, mode: "auto" | "wallet" | "token" = "auto") => {
         setIsLoading(true);
         setError(null);
         setResult(null);
@@ -98,7 +137,7 @@ export default function ScannerApp() {
             const res = await fetch("/api/scan", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ address }),
+                body: JSON.stringify({ address, mode }),
             });
             
             const data = await res.json();
@@ -138,7 +177,7 @@ export default function ScannerApp() {
             setActiveTab("audit");
             return;
         }
-        handleScan(address);
+        handleScan(address, type);
     };
 
     const handleDeleteHistory = (index: number) => {
@@ -222,7 +261,7 @@ export default function ScannerApp() {
                     <div className="lg:col-span-3 space-y-6 order-1 lg:order-2">
                         {/* Scanner Search Input */}
                         <InputSection 
-                            onScan={(addr) => handleScan(addr)} 
+                            onScan={(addr, mode) => handleScan(addr, mode)} 
                             isLoading={isLoading} 
                             initialAddress={result?.address}
                         />
@@ -354,39 +393,70 @@ export default function ScannerApp() {
                                                 }`}
                                             >
                                                 <FileText className="w-4 h-4" />
-                                                {result.type === "token" ? "Contract Audit" : "Wallet Audit"}
+                                                Security Audit
                                             </button>
                                             
-                                            {result.type === "wallet" && (
-                                                <button
-                                                    onClick={() => setActiveTab("holdings")}
-                                                    className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
-                                                        activeTab === "holdings"
-                                                            ? "border-brand-primary text-white"
-                                                            : "border-transparent text-zinc-500 hover:text-zinc-300"
-                                                    }`}
-                                                >
-                                                    <Database className="w-4 h-4" />
-                                                    Token Portfolio
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => setActiveTab("holdings")}
+                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
+                                                    activeTab === "holdings"
+                                                        ? "border-brand-primary text-white"
+                                                        : "border-transparent text-zinc-500 hover:text-zinc-300"
+                                                }`}
+                                            >
+                                                <Database className="w-4 h-4" />
+                                                {result.type === "token" ? "Contract Info" : "Holdings Portfolio"}
+                                            </button>
+
+                                            <button
+                                                onClick={() => setActiveTab("activity")}
+                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
+                                                    activeTab === "activity"
+                                                        ? "border-brand-primary text-white"
+                                                        : "border-transparent text-zinc-500 hover:text-zinc-300"
+                                                }`}
+                                            >
+                                                <Activity className="w-4 h-4" />
+                                                Recent Activity
+                                            </button>
                                         </div>
 
                                         {/* Viewport content */}
                                         <div className="transition-all duration-300 min-h-[300px]">
                                             {activeTab === "audit" && result.type === "wallet" && result.wallet && (
                                                 <div className="animate-in fade-in duration-300">
-                                                    <WalletResults data={result.wallet} address={result.address} />
+                                                    <WalletResults data={result.wallet} address={result.address} tab="audit" />
                                                 </div>
                                             )}
                                             {activeTab === "holdings" && result.type === "wallet" && result.wallet && (
                                                 <div className="animate-in fade-in duration-300">
-                                                    <WalletResults data={result.wallet} address={result.address} tab="holdings" />
+                                                    <HoldingsList holdings={result.wallet.tokenHoldings} totalValueUSD={result.wallet.totalValueUSD} />
+                                                </div>
+                                            )}
+                                            {activeTab === "activity" && result.type === "wallet" && (
+                                                <div className="animate-in fade-in duration-300">
+                                                    <TransactionTimeline activities={result.recentActivity || []} />
                                                 </div>
                                             )}
                                             {activeTab === "audit" && result.type === "token" && result.token && (
                                                 <div className="animate-in fade-in duration-300">
-                                                     <TokenResults data={result.token} />
+                                                     <TokenResults data={result.token} tab="audit" />
+                                                </div>
+                                            )}
+                                            {activeTab === "holdings" && result.type === "token" && result.token && (
+                                                <div className="animate-in fade-in duration-300">
+                                                     <TokenResults data={result.token} tab="holdings" />
+                                                </div>
+                                            )}
+                                            {activeTab === "activity" && result.type === "token" && (
+                                                <div className="animate-in fade-in duration-300">
+                                                    <TokenTradesPanel 
+                                                        trades={result.tokenTrades || []} 
+                                                        tokenSymbol={result.token?.symbol || "TOKEN"}
+                                                        priceUsd={result.token?.priceUsd}
+                                                        isRefreshing={isRefreshingTrades}
+                                                        refreshedAt={tradesRefreshedAt}
+                                                    />
                                                 </div>
                                             )}
                                         </div>

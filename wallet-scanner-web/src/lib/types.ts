@@ -9,6 +9,33 @@ export interface ScanResult {
   wallet?: WalletData;
   token?: TokenData;
   error?: string;
+  recentActivity?: TransactionActivity[];  // Recent logs for wallets
+  tokenTrades?: TokenTrade[];              // Recent buy trades for tokens (from pool)
+}
+
+export interface TokenTrade {
+  signature: string;
+  timestamp: string;
+  buyer: string;          // Full wallet address of the buyer
+  tokenAmount: number;    // Number of tokens received by buyer
+  tokenSymbol: string;
+  solAmount?: number;     // SOL spent (may be undefined for USDC buys)
+  priceUsd?: number;      // Price per token at time of trade
+  dexName?: string;       // Source DEX: "RAYDIUM", "PUMP_FUN", "ORCA", "JUPITER", etc.
+  type: "buy" | "sell";
+}
+
+export interface TransactionActivity {
+  signature: string;
+  timestamp: string;
+  type: "transfer_in" | "transfer_out" | "swap" | "contract_interaction" | "unknown";
+  typeName: string; // e.g. "SOL Received", "SOL Sent", "Token Swap", "Contract Interaction"
+  amount?: string;
+  sender?: string;
+  recipient?: string;
+  opposingParty?: string;
+  status: "success" | "failed";
+  programId?: string;
 }
 
 export interface MaliciousInteraction {
@@ -53,15 +80,17 @@ export interface TokenData {
   supply: number; // human-readable
   mintAuthority: string | null; // null = renounced (good)
   freezeAuthority: string | null;
+  updateAuthority: string | null; // null = renounced (good)
   isVerified: boolean;
   metadataUri?: string;
   riskFlags: RiskFlag[];
-  // Live Market Data (Raydium)
+  // Live Market Data (Raydium / DexScreener)
   priceUsd?: number;
   volume24h?: number;
   liquidity?: number;
   fdv?: number;
   dexUrl?: string;
+  pairAddress?: string; // AMM pool address (Raydium / pump.fun) — used to fetch live trades
 }
 
 export interface RiskFlag {
@@ -69,3 +98,4 @@ export interface RiskFlag {
   severity: "INFO" | "WARNING" | "DANGER";
   description: string;
 }
+

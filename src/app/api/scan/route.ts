@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidPublicKey, detectAddressType, fetchWalletData, fetchTokenData } from "@/lib/solana";
+import { isValidPublicKey, detectAddressType, fetchWalletData, fetchTokenData, fetchRecentActivity, fetchTokenTrades, connection } from "@/lib/solana";
 import { calculateRiskScore, getRiskLabel } from "@/lib/riskScoring";
 import { ScanResult } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   try {
-    const { address } = await req.json();
+    const { address, mode } = await req.json();
     if (!address || !isValidPublicKey(address.trim())) {
       return NextResponse.json({ error: "Invalid Solana address" }, { status: 400 });
     }
 
     const trimmed = address.trim();
     const addressType = await detectAddressType(trimmed);
+
+    // Validate mode if user explicitly specified wallet or token
+    if (mode === "wallet" && addressType !== "wallet") {
+      return NextResponse.json(
+        { error: `Address is not a Wallet. Detected as a ${addressType === "unknown" ? "unfunded account" : addressType}.` },
+        { status: 400 }
+      );
+    }
+    if (mode === "token" && addressType !== "token") {
+      return NextResponse.json(
+        { error: `Address is not a Token Mint. Detected as a ${addressType === "unknown" ? "unfunded account" : addressType}.` },
+        { status: 400 }
+      );
+    }
 
     if (addressType === "unknown" || addressType === "program") {
       return NextResponse.json({
@@ -39,6 +53,7 @@ export async function POST(req: NextRequest) {
       result.wallet = walletData;
       result.riskScore = calculateRiskScore(walletData.riskFlags);
       result.riskLabel = getRiskLabel(result.riskScore);
+      result.recentActivity = await fetchRecentActivity(trimmed, connection);
     }
 
     if (addressType === "token") {
@@ -46,6 +61,13 @@ export async function POST(req: NextRequest) {
       result.token = tokenData;
       result.riskScore = calculateRiskScore(tokenData.riskFlags);
       result.riskLabel = getRiskLabel(result.riskScore);
+      // Fetch recent buys from the AMM pool (parallel with no extra cost)
+      result.tokenTrades = await fetchTokenTrades(
+        trimmed,
+        tokenData.symbol,
+        tokenData.pairAddress ?? null,
+        connection
+      );
     }
 
     return NextResponse.json(result);
@@ -61,3 +83,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: errorObj.message || "Scan failed." }, { status: 500 });
   }
 }
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { TokenTrade } from "@/lib/types";
-import { TrendingUp, ExternalLink, Copy, Check, ShoppingCart, RefreshCw } from "lucide-react";
+import { TrendingUp, ExternalLink, Copy, Check, ShoppingCart, RefreshCw, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 interface TokenTradesPanelProps {
@@ -10,6 +10,7 @@ interface TokenTradesPanelProps {
   priceUsd?: number;
   isRefreshing?: boolean;
   refreshedAt?: Date | null;
+  error?: string | null;
 }
 
 function fmtNum(n: number, opts?: Intl.NumberFormatOptions) {
@@ -74,6 +75,7 @@ export default function TokenTradesPanel({
   priceUsd,
   isRefreshing = false,
   refreshedAt = null,
+  error = null,
 }: TokenTradesPanelProps) {
 
   // Show skeleton rows while initial load is in progress (no trades yet + refreshing)
@@ -82,7 +84,18 @@ export default function TokenTradesPanel({
   if (!showSkeleton && (!trades || trades.length === 0)) {
     return (
       <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-14 text-center flex flex-col items-center justify-center gap-3 glow-card">
-        {isRefreshing ? (
+        {error ? (
+          <>
+            <AlertCircle className="w-12 h-12 text-amber-500/80 animate-pulse" />
+            <h4 className="text-zinc-400 font-bold">Live Feed Rate Limited</h4>
+            <p className="text-xs text-amber-400/80 max-w-md font-mono">
+              {error}
+            </p>
+            <p className="text-[10px] text-zinc-500">
+              The application is automatically retrying to establish connection.
+            </p>
+          </>
+        ) : isRefreshing ? (
           <>
             <RefreshCw className="w-10 h-10 text-zinc-600 animate-spin" />
             <h4 className="text-zinc-400 font-bold">Fetching live trades…</h4>
@@ -103,6 +116,12 @@ export default function TokenTradesPanel({
 
   return (
     <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-zinc-800/80 rounded-3xl overflow-hidden glow-card">
+      {error && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-2.5 text-xs text-amber-400/90 flex items-center gap-2 font-mono">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>Notice: {error} (auto-retry in progress)</span>
+        </div>
+      )}
       {/* Header */}
       <div className="px-6 py-4 border-b border-zinc-800/50 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2.5">

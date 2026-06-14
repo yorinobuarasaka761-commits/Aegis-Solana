@@ -482,7 +482,7 @@ export async function getUpdateAuthority(
 ): Promise<string | null> {
   try {
     const mint = new PublicKey(mintAddress);
-    const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28ej1Al56LdhWYFCG6G4jrh5CjCwh5");
+    const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
     const [pda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("metadata"),
@@ -794,26 +794,65 @@ export async function fetchTokenTrades(
   }
 
   // ── Strategy 2: DEX-agnostic RPC fallback ───────────────────────────────
-  // Requires a pool address to know which accounts to scan
-  if (!pairAddress) return trades;
-
   try {
-    const poolPubkey = new PublicKey(pairAddress);
-    const signatures = await connection.getSignaturesForAddress(poolPubkey, { limit: 80 });
+    const targetPubkey = new PublicKey(pairAddress ?? tokenAddress);
+    const signatures = await connection.getSignaturesForAddress(targetPubkey, { limit: 15 });
     if (!signatures || signatures.length === 0) return trades;
 
     const sigStrings = signatures.map((s) => s.signature);
-    const txs = await connection.getParsedTransactions(sigStrings, {
-      maxSupportedTransactionVersion: 0,
-    });
+    interface ParsedTxWrapper {
+      parsed: any;
+      signature: string;
+      blockTime: number | null | undefined;
+    }
 
-    for (let i = 0; i < txs.length && trades.length < 10; i++) {
-      const tx = txs[i];
+    let txs: ParsedTxWrapper[] = [];
+    try {
+      const batch = await connection.getParsedTransactions(sigStrings, {
+        maxSupportedTransactionVersion: 0,
+      });
+      for (let i = 0; i < batch.length; i++) {
+        const p = batch[i];
+        if (p) {
+          txs.push({
+            parsed: p,
+            signature: signatures[i].signature,
+            blockTime: signatures[i].blockTime,
+          });
+        }
+      }
+    } catch (err: any) {
+      if (err.message?.includes("Too many requests") || err.code === 429) {
+        console.warn("fetchTokenTrades batch fetch rate limited; falling back to sequential fetching.");
+        const subset = signatures.slice(0, 5);
+        for (const sigInfo of subset) {
+          try {
+            const parsed = await connection.getParsedTransaction(sigInfo.signature, {
+              maxSupportedTransactionVersion: 0,
+            });
+            if (parsed) {
+              txs.push({
+                parsed,
+                signature: sigInfo.signature,
+                blockTime: sigInfo.blockTime,
+              });
+            }
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          } catch {
+            // ignore individual transaction errors
+          }
+        }
+      } else {
+        throw err;
+      }
+    }
+
+    for (const wrapper of txs) {
+      const tx = wrapper.parsed;
       if (!tx || tx.meta?.err) continue;
 
-      const sigInfo = signatures[i];
-      const timestamp = sigInfo.blockTime
-        ? new Date(sigInfo.blockTime * 1000).toLocaleString()
+      const timestamp = wrapper.blockTime
+        ? new Date(wrapper.blockTime * 1000).toLocaleString()
         : "Unknown";
 
       const preTokens = tx.meta?.preTokenBalances ?? [];
@@ -835,7 +874,7 @@ export async function fetchTokenTrades(
       }
       if (ownerDelta.size === 0) continue;
 
-      const accountKeys = tx.transaction.message.accountKeys.map((ak) => {
+      const accountKeys = tx.transaction.message.accountKeys.map((ak: any) => {
         const pk = (ak as { pubkey?: PublicKey }).pubkey ?? (ak as unknown as PublicKey);
         return pk?.toBase58?.() ?? "";
       });
@@ -861,7 +900,7 @@ export async function fetchTokenTrades(
       if (!buyerAddress || tokenReceived <= 0) continue;
 
       trades.push({
-        signature: sigInfo.signature,
+        signature: wrapper.signature,
         timestamp,
         buyer: buyerAddress,
         tokenAmount: tokenReceived,

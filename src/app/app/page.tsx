@@ -69,6 +69,7 @@ export default function ScannerApp() {
     // Trade refresh state
     const [tradesRefreshedAt, setTradesRefreshedAt] = useState<Date | null>(null);
     const [isRefreshingTrades, setIsRefreshingTrades] = useState(false);
+    const [tradesError, setTradesError] = useState<string | null>(null);
 
     // ── Auto-refresh token trades every 30 seconds ─────────────────────────
     useEffect(() => {
@@ -91,10 +92,15 @@ export default function ScannerApp() {
                     if (data.trades && Array.isArray(data.trades)) {
                         setResult((prev) => prev ? { ...prev, tokenTrades: data.trades } : prev);
                         setTradesRefreshedAt(new Date());
+                        setTradesError(null);
                     }
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    setTradesError(data.error || "Failed to fetch recent trades.");
                 }
             } catch (e) {
                 console.error("Trade refresh failed:", e);
+                setTradesError("Connection lost. Retrying...");
             } finally {
                 setIsRefreshingTrades(false);
             }
@@ -132,6 +138,8 @@ export default function ScannerApp() {
         setIsLoading(true);
         setError(null);
         setResult(null);
+        setTradesError(null);
+        setTradesRefreshedAt(null);
 
         try {
             const res = await fetch("/api/scan", {
@@ -456,6 +464,7 @@ export default function ScannerApp() {
                                                         priceUsd={result.token?.priceUsd}
                                                         isRefreshing={isRefreshingTrades}
                                                         refreshedAt={tradesRefreshedAt}
+                                                        error={tradesError}
                                                     />
                                                 </div>
                                             )}

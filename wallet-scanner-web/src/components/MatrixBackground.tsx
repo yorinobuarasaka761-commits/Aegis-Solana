@@ -27,7 +27,7 @@ export default function MatrixBackground() {
     const chars = "01#%*+@&x$ΞØ▲▼⚡⚙☠";
     const charArray = chars.split("");
     const fontSize = 11;
-    
+
     // Columns definition
     let columns = Math.floor(canvas.width / fontSize);
     let drops: number[] = Array(columns).fill(0).map(() => Math.floor(Math.random() * -100));
@@ -39,7 +39,7 @@ export default function MatrixBackground() {
         const newHeight = canvas.parentElement.clientHeight;
         canvas.width = newWidth;
         canvas.height = newHeight;
-        
+
         columns = Math.floor(newWidth / fontSize);
         drops = Array(columns).fill(0).map((_, i) => drops[i] || Math.floor(Math.random() * -100));
       }
@@ -71,7 +71,7 @@ export default function MatrixBackground() {
 
         // Mix brand purple, hacker green, and warm amber/orange matching the user's reference
         let fillStyle = "rgba(139, 92, 246, 0.35)"; // Default purple
-        
+
         const rand = Math.random();
         if (rand < 0.04) {
           fillStyle = "#ffffff"; // Lead drop glow

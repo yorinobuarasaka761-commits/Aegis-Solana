@@ -1,8 +1,10 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { getMint } from "@solana/spl-token";
-import { AddressType, WalletData, TokenData, TokenHolding, MaliciousInteraction, TransactionActivity, TokenTrade } from "./types";
+import { AddressType, WalletData, TokenData, TokenHolding, MaliciousInteraction, TransactionActivity, TokenTrade, ParsedTransaction } from "./types";
 import { buildTokenRiskFlags, buildWalletRiskFlags, assessTokenRisk } from "./riskScoring";
 import { MALICIOUS_ADDRESSES } from "./maliciousAddresses";
+import { fetchWalletTransactions } from "./transactions";
+import { addMaliciousAddress } from "./maliciousDB";
 
 const RPC_URL = process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
 
@@ -313,6 +315,10 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
 
           const malInfo = MALICIOUS_ADDRESSES[accAddress];
           if (malInfo) {
+            addMaliciousAddress(
+              address,
+              `Auto-flagged: Interacted with ${malInfo.name}`
+            );
             if (!recentInteractions.some((item) => item.address === accAddress)) {
               recentInteractions.push({
                 address: accAddress,
@@ -335,6 +341,10 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
   for (const holding of rawHoldings) {
     const malInfo = MALICIOUS_ADDRESSES[holding.mint];
     if (malInfo) {
+      addMaliciousAddress(
+        address,
+        `Auto-flagged: Holds scam token ${holding.symbol} (${malInfo.name})`
+      );
       if (!recentInteractions.some((item) => item.address === holding.mint)) {
         recentInteractions.push({
           address: holding.mint,
@@ -354,14 +364,22 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
 
   const totalValueUSD = filteredHoldings.reduce((s, h) => s + h.valueUSD, solBalanceUSD);
 
+  let transactions: ParsedTransaction[] = [];
+  try {
+    transactions = await fetchWalletTransactions(connection, address);
+  } catch (err) {
+    console.error("[Aegis] Transaction fetch failed silently:", err);
+  }
+
   return {
     solBalance,
     solBalanceUSD,
     tokenHoldings: filteredHoldings,
     totalValueUSD,
-    riskFlags: buildWalletRiskFlags(filteredHoldings, recentInteractions),
+    riskFlags: buildWalletRiskFlags(filteredHoldings, recentInteractions, transactions, address),
     tokenCount: filteredHoldings.length,
     recentInteractions,
+    transactions,
   };
 }
 

@@ -63,7 +63,19 @@ const PAST_SCANS = [
     risk: "0 SAFE",
     riskColor: "text-emerald-400",
     icon: Wallet,
-    description: "Security footprint scanner audit checking the last 20 transaction signatures for mixer or hacker interactions."
+    description: "Security footprint scanner audit checking the last 25 transaction signatures for mixer or hacker interactions."
+  },
+  {
+    id: "wormhole",
+    title: "Wormhole Exploiter",
+    badge: "Malicious Threat",
+    badgeColor: "text-rose-400 border-rose-500/20 bg-rose-500/10",
+    image: "/wormhole-scan.png",
+    address: "CfJzMnTFirzQPNgRESwMjqKP5JhqD3xSoWZnebPwSNr",
+    risk: "100 CRITICAL",
+    riskColor: "text-rose-500",
+    icon: ShieldAlert,
+    description: "Registry flagged threat wallet associated with the $320M Wormhole exploit. Launders funds through mixers."
   }
 ];
 
@@ -380,7 +392,7 @@ export default function Home() {
                             <div className="text-zinc-500 font-mono text-[9px] uppercase tracking-widest">Configuration Needed</div>
                         </div>
                         <div className="py-8 sm:px-10 first:pl-0 last:pr-0">
-                            <div className="text-white font-barlow font-bold text-4xl leading-none mb-1">20 Tx</div>
+                            <div className="text-white font-barlow font-bold text-4xl leading-none mb-1">25 Tx</div>
                             <div className="text-zinc-500 font-mono text-[9px] uppercase tracking-widest">Recent Signature Scan Depth</div>
                         </div>
                         <div className="py-8 sm:px-10 first:pl-0 last:pr-0">
@@ -419,7 +431,7 @@ export default function Home() {
                         <div>
                             <div className="mb-5 text-indigo-400"><Globe className="w-6 h-6" /></div>
                             <h3 className="font-barlow font-bold text-xl uppercase tracking-wider text-white mb-2">Low-Credit Wallet Scanner</h3>
-                            <p className="text-zinc-400 text-xs leading-relaxed">Performs lightweight, credit-friendly queries to batch-fetch and verify the wallet&apos;s last 20 recent on-chain signatures for mixer interactions.</p>
+                            <p className="text-zinc-400 text-xs leading-relaxed">Performs lightweight, credit-friendly queries to batch-fetch and verify the wallet&apos;s last 25 recent on-chain signatures for mixer interactions.</p>
                         </div>
                         <div className="mt-6 flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse"></span>
@@ -472,6 +484,30 @@ export default function Home() {
                         <div className="mt-6 flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-white/20 animate-pulse"></span>
                             <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Session Persistence</span>
+                        </div>
+                    </div>
+
+                    <div className="group glow-card-neon p-8 flex flex-col justify-between min-h-[200px] rounded-2xl">
+                        <div>
+                            <div className="mb-5 text-[#b885ff]"><ArrowRightLeft className="w-6 h-6" /></div>
+                            <h3 className="font-barlow font-bold text-xl uppercase tracking-wider text-white mb-2">Live Trades Streamer</h3>
+                            <p className="text-zinc-400 text-xs leading-relaxed">Streams real-time token swaps and decentralized pool events from Jupiter, Raydium, and Meteora with transaction volume markers.</p>
+                        </div>
+                        <div className="mt-6 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
+                            <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Real-Time Swap Logs</span>
+                        </div>
+                    </div>
+
+                    <div className="group glow-card-neon p-8 flex flex-col justify-between min-h-[200px] rounded-2xl">
+                        <div>
+                            <div className="mb-5 text-indigo-400"><Network className="w-6 h-6" /></div>
+                            <h3 className="font-barlow font-bold text-xl uppercase tracking-wider text-white mb-2">On-Chain Interaction Timeline</h3>
+                            <p className="text-zinc-400 text-xs leading-relaxed">Visualizes the last 25 wallet transactions (transfers, swaps, contract calls) chronologically, immediately highlighting malicious counterparties.</p>
+                        </div>
+                        <div className="mt-6 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                            <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Chronological Security Trace</span>
                         </div>
                     </div>
 
@@ -533,7 +569,7 @@ export default function Home() {
                             <div className="border-t border-white/[0.05] pt-5">
                                 <p className="text-[9px] text-zinc-600 font-mono uppercase tracking-[0.2em] mb-2">Metrics Inspected</p>
                                 <ul className="space-y-1 text-[10px] text-zinc-400 font-mono tracking-wider">
-                                    <li>· recent transaction keys (last 20)</li>
+                                    <li>· recent transaction keys (last 25)</li>
                                     <li>· known mixers / laundering pools</li>
                                     <li>· wallet drainers & exploits</li>
                                 </ul>
@@ -642,7 +678,7 @@ export default function Home() {
                                         <div className="hidden md:flex w-[26%] bg-[#080B13] border-r border-white/[0.04] p-3 flex-col justify-between shrink-0">
                                             <div className="space-y-4">
                                                 <div>
-                                                    <span className="text-[7.5px] font-mono font-bold tracking-wider text-zinc-500 uppercase">
+                            <span className="text-[7.5px] font-mono font-bold tracking-wider text-zinc-500 uppercase">
                                                         Historical Audits
                                                     </span>
                                                     <div className="text-[7px] text-zinc-600 font-mono mt-0.5">Logs</div>
@@ -658,7 +694,7 @@ export default function Home() {
                                                             }`}
                                                         >
                                                             <span className="truncate max-w-[55px]">{s.address.substring(0, 8)}...</span>
-                                                            <span className={`text-[7px] px-1 bg-black/40 rounded ${s.id === 'wallet' || s.id === 'usdc' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                            <span className={`text-[7px] px-1 bg-black/40 rounded ${s.id === 'wormhole' ? 'text-rose-500 font-bold' : s.id === 'wallet' || s.id === 'usdc' ? 'text-emerald-400' : 'text-amber-400'}`}>
                                                                 {s.risk.split(' ')[0]}
                                                             </span>
                                                         </div>
@@ -697,7 +733,16 @@ export default function Home() {
                                                 <div className="col-span-1 sm:col-span-4 bg-[#0B0F1A] border border-white/[0.04] rounded-2xl p-3 flex flex-col items-center justify-center text-center">
                                                     <div className="relative w-16 h-10 flex items-center justify-center">
                                                         <div className="absolute inset-0 border-4 border-zinc-800 rounded-t-full border-b-0" />
-                                                        <div className={`absolute inset-0 border-4 rounded-t-full border-b-0 ${activeScan.id === 'gusic' || activeScan.id === 'token2022' ? 'border-amber-500' : 'border-emerald-500'}`} style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} />
+                                                        <div 
+                                                            className={`absolute inset-0 border-4 rounded-t-full border-b-0 ${
+                                                                activeScan.id === 'wormhole' 
+                                                                    ? 'border-rose-500' 
+                                                                    : activeScan.id === 'gusic' || activeScan.id === 'token2022' 
+                                                                        ? 'border-amber-500' 
+                                                                        : 'border-emerald-500'
+                                                            }`} 
+                                                            style={activeScan.id === 'wormhole' ? undefined : { clipPath: 'polygon(0 0, 50% 0, 50% 100%, 0 100%)' }} 
+                                                        />
                                                         <span className="text-sm font-mono font-bold mt-4">{activeScan.risk.split(' ')[0]}</span>
                                                     </div>
                                                     <span className="text-[7px] font-mono text-zinc-500 mt-2 uppercase tracking-wider">Risk Score</span>
@@ -709,8 +754,12 @@ export default function Home() {
                                                     <div>
                                                         <div className="flex items-center justify-between border-b border-white/[0.04] pb-1.5 mb-1.5">
                                                             <span className="text-[7.5px] font-mono text-zinc-500 uppercase tracking-wider">Scan Profile Metadata</span>
-                                                            <span className="text-[7px] px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded font-mono uppercase tracking-wider">
-                                                                {activeScan.id === 'wallet' ? 'Personal Wallet' : 'Token Mint Contract'}
+                                                            <span className={`text-[7px] px-2 py-0.5 rounded font-mono uppercase tracking-wider ${
+                                                                activeScan.id === 'wallet' || activeScan.id === 'wormhole' 
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                                                    : 'bg-brand-primary/10 text-brand-primary'
+                                                            }`}>
+                                                                {activeScan.id === 'wallet' || activeScan.id === 'wormhole' ? 'Personal Wallet' : 'Token Mint Contract'}
                                                             </span>
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-2 text-[7.5px] font-mono text-zinc-400">
@@ -719,8 +768,12 @@ export default function Home() {
                                                                 <span className="truncate block select-all">{activeScan.address.substring(0, 10)}...{activeScan.address.substring(activeScan.address.length - 6)}</span>
                                                             </div>
                                                             <div>
-                                                                <span className="text-zinc-600 block text-[6px] uppercase mb-0.5">{activeScan.id === 'wallet' ? 'SOL Balance' : 'Token Descriptor'}</span>
-                                                                <span className="block">{activeScan.id === 'wallet' ? '0.0173 SOL' : activeScan.title}</span>
+                                                                <span className="text-zinc-600 block text-[6px] uppercase mb-0.5">
+                                                                    {activeScan.id === 'wallet' || activeScan.id === 'wormhole' ? 'Current SOL Balance' : 'Token Descriptor'}
+                                                                </span>
+                                                                <span className="block">
+                                                                    {activeScan.id === 'wormhole' ? '0 SOL' : activeScan.id === 'wallet' ? '0.0173 SOL' : activeScan.title}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -735,9 +788,9 @@ export default function Home() {
                                             <div className="space-y-2">
                                                 <div className="flex border-b border-white/[0.04] gap-4 text-[7.5px]">
                                                     <span className="font-mono font-bold border-b-2 border-brand-primary pb-1 text-white uppercase">
-                                                        {activeScan.id === 'wallet' ? 'Wallet Audit' : 'Contract Audit'}
+                                                        {activeScan.id === 'wallet' || activeScan.id === 'wormhole' ? 'Wallet Audit' : 'Contract Audit'}
                                                     </span>
-                                                    {activeScan.id === 'wallet' && <span className="font-mono text-zinc-500 pb-1 uppercase">Token Portfolio</span>}
+                                                    {(activeScan.id === 'wallet' || activeScan.id === 'wormhole') && <span className="font-mono text-zinc-500 pb-1 uppercase">Token Portfolio</span>}
                                                 </div>
 
                                                 {/* Audit Details Card */}
@@ -747,35 +800,76 @@ export default function Home() {
                                                             <activeScan.icon className="w-3.5 h-3.5" />
                                                         </div>
                                                         <div>
-                                                            <div className="text-[6.5px] text-zinc-500 font-mono uppercase leading-none mb-0.5">{activeScan.id === 'wallet' ? 'Wallet Address' : 'Token Address'}</div>
+                                                            <div className="text-[6.5px] text-zinc-500 font-mono uppercase leading-none mb-0.5">
+                                                                {activeScan.id === 'wallet' || activeScan.id === 'wormhole' ? 'Wallet Address' : 'Token Address'}
+                                                            </div>
                                                             <div className="text-[8.5px] font-mono text-zinc-200 select-all truncate max-w-[200px]">{activeScan.address}</div>
                                                         </div>
                                                     </div>
 
-                                                    {activeScan.id === 'wallet' ? (
+                                                    {activeScan.id === 'wallet' || activeScan.id === 'wormhole' ? (
                                                         // Wallet audit mockup results
                                                         <div className="space-y-3">
                                                             <div className="grid grid-cols-2 gap-3">
                                                                 <div className="p-2.5 bg-black/30 rounded-xl border border-white/[0.02]">
                                                                     <div className="text-[6px] text-zinc-500 uppercase font-mono mb-0.5">Total Portfolio</div>
-                                                                    <div className="text-xs font-mono font-bold text-white">$14.29</div>
+                                                                    <div className="text-xs font-mono font-bold text-white">
+                                                                        {activeScan.id === 'wormhole' ? '$0.00' : '$14.29'}
+                                                                    </div>
+                                                                    {activeScan.id === 'wormhole' && <div className="text-[6px] text-zinc-500 mt-0.5">≈ 0.00 USD</div>}
                                                                 </div>
                                                                 <div className="p-2.5 bg-black/30 rounded-xl border border-white/[0.02]">
                                                                     <div className="text-[6px] text-zinc-500 uppercase font-mono mb-0.5">SOL Balance</div>
-                                                                    <div className="text-xs font-mono font-bold text-white">0.0173 SOL</div>
+                                                                    <div className="text-xs font-mono font-bold text-white">
+                                                                        {activeScan.id === 'wormhole' ? '0.0000' : '0.0173 SOL'}
+                                                                    </div>
+                                                                    {activeScan.id === 'wormhole' && <div className="text-[6px] text-zinc-500 mt-0.5">$0.00 USD</div>}
                                                                 </div>
                                                             </div>
-                                                            <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex items-center gap-2.5">
-                                                                <span className="text-emerald-400 text-xs font-bold">✓</span>
-                                                                <div>
-                                                                    <div className="text-[7.5px] font-bold text-emerald-400">No Risk Flags Detected</div>
-                                                                    <div className="text-[6.5px] text-zinc-500 mt-0.5">This wallet appears to have a clean on-chain record.</div>
+                                                            
+                                                            {activeScan.id === 'wormhole' ? (
+                                                                <>
+                                                                    {/* Warning Card 1 */}
+                                                                    <div className="p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-xl flex items-start gap-2.5">
+                                                                        <span className="text-rose-500 text-xs font-bold mt-0.5">⚠️</span>
+                                                                        <div>
+                                                                            <div className="text-[7.5px] font-bold text-rose-400">Flagged Malicious Wallet Address</div>
+                                                                            <div className="text-[6.5px] text-zinc-400 mt-0.5 leading-relaxed">This scanned wallet itself is flagged as a known threat: Wormhole Exploiter Wallet. Do NOT interact or send funds.</div>
+                                                                        </div>
+                                                                    </div>
+                                                                    {/* Warning Card 2 */}
+                                                                    <div className="p-2.5 bg-rose-500/5 border border-rose-500/20 rounded-xl flex items-start gap-2.5">
+                                                                        <span className="text-rose-500 text-xs font-bold mt-0.5">⚠️</span>
+                                                                        <div>
+                                                                            <div className="text-[7.5px] font-bold text-rose-400">Registry Flagged: Exploiters & Attackers</div>
+                                                                            <div className="text-[6.5px] text-zinc-400 mt-0.5 leading-relaxed">Associated with the $320M Wormhole bridge exploit (Feb 2022). Funds partially laundered through mixers.</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex items-center gap-2.5">
+                                                                    <span className="text-emerald-400 text-xs font-bold">✓</span>
+                                                                    <div>
+                                                                        <div className="text-[7.5px] font-bold text-emerald-400">No Risk Flags Detected</div>
+                                                                        <div className="text-[6.5px] text-zinc-500 mt-0.5">This wallet appears to have a clean on-chain record.</div>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                            <div className="p-2.5 bg-black/30 border border-white/[0.04] rounded-xl">
-                                                                <div className="text-[7.5px] font-bold text-zinc-300 uppercase font-mono mb-1">Security Footprint & Interactions</div>
-                                                                <div className="text-[6.5px] text-zinc-500">No mixers, drainers, or attacker contracts detected in the last 20 transactions.</div>
-                                                            </div>
+                                                            )}
+
+                                                            {activeScan.id === 'wormhole' ? (
+                                                                <div className="p-2.5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex items-center gap-2.5">
+                                                                    <span className="text-emerald-400 text-xs font-bold">✓</span>
+                                                                    <div>
+                                                                        <div className="text-[7.5px] font-bold text-emerald-400">Interaction Scan Clear</div>
+                                                                        <div className="text-[6.5px] text-zinc-500 mt-0.5">No recent transactions or interactions with hackers, mixers, drainers, or scam contracts detected.</div>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="p-2.5 bg-black/30 border border-white/[0.04] rounded-xl">
+                                                                    <div className="text-[7.5px] font-bold text-zinc-300 uppercase font-mono mb-1">Security Footprint & Interactions</div>
+                                                                    <div className="text-[6.5px] text-zinc-500">No mixers, drainers, or attacker contracts detected in the last 25 transactions.</div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         // Token audit mockup results

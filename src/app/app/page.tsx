@@ -62,6 +62,11 @@ export default function ScannerApp() {
     const [isLoading, setIsLoading] = useState(false);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
     
     // UI Navigation States
     const [activeTab, setActiveTab] = useState<"audit" | "holdings" | "activity">("audit");
@@ -370,7 +375,7 @@ export default function ScannerApp() {
                                                         Scan Timestamp
                                                     </span>
                                                     <p className="font-mono text-zinc-400 truncate text-[11px]">
-                                                        {new Date(result.scannedAt).toLocaleString()}
+                                                         {mounted && result ? new Date(result.scannedAt).toLocaleString() : ""}
                                                     </p>
                                                 </div>
                                             </div>
@@ -441,11 +446,15 @@ export default function ScannerApp() {
                                                     <HoldingsList holdings={result.wallet.tokenHoldings} totalValueUSD={result.wallet.totalValueUSD} />
                                                 </div>
                                             )}
-                                            {activeTab === "activity" && result.type === "wallet" && (
+                                            {activeTab === "activity" && result.type === "wallet" && result.wallet && (
                                                 <div className="animate-in fade-in duration-300">
-                                                    <TransactionTimeline activities={result.recentActivity || []} />
+                                                    <TransactionTimeline
+                                                        transactions={result.wallet.transactions || []}
+                                                        walletAddress={result.address}
+                                                    />
                                                 </div>
                                             )}
+
                                             {activeTab === "audit" && result.type === "token" && result.token && (
                                                 <div className="animate-in fade-in duration-300">
                                                      <TokenResults data={result.token} tab="audit" />

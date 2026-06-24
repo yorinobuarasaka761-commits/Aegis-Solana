@@ -56,6 +56,26 @@ export interface WalletData {
   // Wallet Overview Stats
   tokenCount: number;       // total non-dust token count
   recentInteractions?: MaliciousInteraction[];
+  transactions: ParsedTransaction[];
+}
+
+export type TransactionType =
+  | "SOL_TRANSFER_IN"
+  | "SOL_TRANSFER_OUT"
+  | "TOKEN_TRANSFER"
+  | "SWAP"
+  | "CONTRACT_INTERACTION"
+  | "UNKNOWN";
+
+export interface ParsedTransaction {
+  signature: string;
+  timestamp: string;           // ISO string
+  type: TransactionType;
+  counterparty: string | null; // The other wallet involved
+  amountSOL: number | null;    // SOL moved (if applicable)
+  isMalicious: boolean;        // counterparty in malicious DB
+  maliciousLabel?: string;     // e.g. "Known Drainer"
+  status: "SUCCESS" | "FAILED";
 }
 
 export interface TokenHolding {

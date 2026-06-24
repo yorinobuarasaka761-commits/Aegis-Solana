@@ -9,6 +9,17 @@
   --color-neon-green: #10b981;
   --color-neon-yellow: #f59e0b;
   --color-neon-red: #ef4444;
+
+  /* Overrides for standard tailwind purple/violet colors to use the new premium electric orchid */
+  --color-purple-400: #b885ff;
+  --color-purple-500: #9d5cff;
+  --color-purple-600: #843dfc;
+  --color-purple-750: #7323f5;
+  
+  --color-violet-400: #b885ff;
+  --color-violet-500: #9d5cff;
+  --color-violet-600: #843dfc;
+  --color-violet-750: #7323f5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
@@ -16,53 +27,53 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 :root,
 [data-theme="dark"] {
-  --background: #06080F;
-  --foreground: #F1F5F9;
-  --card-bg: rgba(10, 15, 30, 0.6);
-  --border-color: rgba(30, 41, 59, 0.5);
-  --glow-color: rgba(139, 92, 246, 0.15);
+  --background: #040408;
+  --foreground: #F5F3FF;
+  --card-bg: rgba(10, 11, 20, 0.45);
+  --border-color: rgba(143, 67, 255, 0.1);
+  --glow-color: rgba(143, 67, 255, 0.08);
 
   /* Semantic tokens */
-  --surface-base: #05070C;
-  --surface-primary: #06080F;
-  --surface-elevated: #0B0F19;
-  --surface-card: rgba(11, 15, 26, 0.8);
-  --surface-card-hover: rgba(11, 15, 26, 0.95);
-  --surface-overlay: rgba(6, 8, 15, 0.8);
+  --surface-base: #020205;
+  --surface-primary: #040408;
+  --surface-elevated: #0a0a14;
+  --surface-card: rgba(10, 11, 20, 0.65);
+  --surface-card-hover: rgba(14, 15, 28, 0.85);
+  --surface-overlay: rgba(6, 7, 14, 0.9);
 
-  --text-primary: #FFFFFF;
-  --text-secondary: #E2E8F0;
-  --text-tertiary: #A1A1AA;
-  --text-muted: #71717A;
-  --text-dimmed: #3F3F46;
+  --text-primary: #FAF9FF;
+  --text-secondary: #E4E1FF;
+  --text-tertiary: #C1B9FF;
+  --text-muted: #8E85BC;
+  --text-dimmed: #5D5687;
 
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.20);
-  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(143, 67, 255, 0.04);
+  --border-default: rgba(143, 67, 255, 0.08);
+  --border-hover: rgba(143, 67, 255, 0.22);
+  --border-strong: rgba(143, 67, 255, 0.16);
 
-  --brand-primary: #8b5cf6;
-  --brand-glow: rgba(139, 92, 246, 0.15);
+  --brand-primary: #9d5cff;
+  --brand-glow: rgba(157, 92, 255, 0.12);
 
-  --scrollbar-track: #06080f;
-  --scrollbar-thumb: #1e293b;
-  --scrollbar-thumb-hover: #334155;
+  --scrollbar-track: #040408;
+  --scrollbar-thumb: #1e1b30;
+  --scrollbar-thumb-hover: #2d2948;
 
-  --grid-line-color: #8b5cf6;
-  --grid-opacity: 0.02;
-  --aurora-violet: rgba(139, 92, 246, 0.10);
-  --aurora-emerald: rgba(16, 185, 129, 0.08);
-  --aurora-indigo: rgba(79, 70, 229, 0.05);
+  --grid-line-color: #9d5cff;
+  --grid-opacity: 0.015;
+  --aurora-violet: rgba(157, 92, 255, 0.05);
+  --aurora-emerald: rgba(16, 185, 129, 0.04);
+  --aurora-indigo: rgba(79, 70, 229, 0.03);
 
-  --glow-card-bg: rgba(11, 16, 26, 0.5);
-  --glow-card-border: rgba(255, 255, 255, 0.04);
-  --glow-card-border-hover: rgba(139, 92, 246, 0.3);
-  --glow-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(139, 92, 246, 0.04);
-  --glow-card-shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(139, 92, 246, 0.15);
+  --glow-card-bg: rgba(10, 11, 20, 0.5);
+  --glow-card-border: rgba(255, 255, 255, 0.03);
+  --glow-card-border-hover: rgba(157, 92, 255, 0.22);
+  --glow-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(157, 92, 255, 0.02);
+  --glow-card-shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(157, 92, 255, 0.12);
 
-  --input-bg: rgba(6, 8, 15, 0.8);
-  --badge-safe-bg: rgba(16, 185, 129, 0.10);
-  --badge-safe-border: rgba(16, 185, 129, 0.20);
+  --input-bg: rgba(6, 7, 14, 0.8);
+  --badge-safe-bg: rgba(16, 185, 129, 0.08);
+  --badge-safe-border: rgba(16, 185, 129, 0.15);
   --badge-safe-text: #10b981;
 }
 
@@ -335,6 +346,47 @@ body {
 .reveal-section.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK THEME OVERRIDES FOR SPECIFIC TAILWIND UTILITIES
+   These force hardcoded colors used in layout components to adapt to our premium dark mode
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] .bg-\[\#06080F\] {
+  background-color: var(--background) !important;
+}
+
+[data-theme="dark"] .bg-\[\#070A12\]\/80,
+[data-theme="dark"] .bg-\[\#070A12\]\/40,
+[data-theme="dark"] .bg-\[\#070A12\]\/30 {
+  background-color: rgba(14, 12, 28, 0.8) !important;
+}
+
+[data-theme="dark"] .bg-\[\#05070C\]\/90 {
+  background-color: var(--surface-base) !important;
+}
+
+[data-theme="dark"] .bg-\[\#0B0F19\] {
+  background-color: var(--surface-elevated) !important;
+}
+
+[data-theme="dark"] .bg-\[\#0B0F1A\]\/80,
+[data-theme="dark"] .bg-\[\#0B0F1A\]\/90 {
+  background-color: var(--surface-card) !important;
+}
+
+[data-theme="dark"] .bg-\[\#0A0D16\]\/40,
+[data-theme="dark"] .bg-\[\#0A0D16\]\/70 {
+  background-color: rgba(8, 7, 18, 0.7) !important;
+}
+
+[data-theme="dark"] .bg-\[\#06080F\]\/95 {
+  background-color: rgba(5, 5, 10, 0.95) !important;
+}
+
+[data-theme="dark"] .bg-\[\#080B13\] {
+  background-color: var(--surface-base) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════

@@ -178,7 +178,7 @@ export default function WalletResults({ data, address, tab = "audit" }: { data: 
         <div className="bg-[#0B0F1A]/80 backdrop-blur-xl border border-zinc-800/80 rounded-3xl p-6 glow-card">
         <h3 className="text-sm font-extrabold uppercase tracking-widest text-zinc-300 mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5 text-indigo-400" />
-          Security Footprint & Interactions (Last 20 Tx)
+          Security Footprint & Interactions (Last 25 Tx)
         </h3>
         
         {data.recentInteractions && data.recentInteractions.length > 0 ? (

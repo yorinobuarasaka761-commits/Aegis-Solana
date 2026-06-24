@@ -1,7 +1,13 @@
-import { RiskFlag, TokenHolding, MaliciousInteraction } from "./types";
+import { RiskFlag, TokenHolding, MaliciousInteraction, ParsedTransaction } from "./types";
+import { checkMalicious } from "./maliciousDB";
+import { getMaliciousAddressInfo, THREAT_CATEGORIES } from "./maliciousAddresses";
 
 export function calculateRiskScore(flags: RiskFlag[]): number {
   let score = 0;
+  // If the scanned wallet itself is flagged as malicious, immediately trigger a critical/maximum score
+  if (flags.some(f => f.label === "Flagged Malicious Wallet Address")) {
+    return 100;
+  }
   for (const flag of flags) {
     if (flag.severity === "DANGER") score += 30;
     if (flag.severity === "WARNING") score += 15;
@@ -19,9 +25,30 @@ export function getRiskLabel(score: number): "LOW" | "MEDIUM" | "HIGH" | "CRITIC
 
 export function buildWalletRiskFlags(
   holdings: TokenHolding[],
-  recentInteractions: MaliciousInteraction[] = []
+  recentInteractions: MaliciousInteraction[] = [],
+  transactions: ParsedTransaction[] = [],
+  address?: string
 ): RiskFlag[] {
   const flags: RiskFlag[] = [];
+
+  if (address) {
+    const maliciousCheck = checkMalicious(address);
+    if (maliciousCheck.isMalicious) {
+      const malInfo = getMaliciousAddressInfo(address);
+      flags.push({
+        label: "Flagged Malicious Wallet Address",
+        severity: "DANGER",
+        description: `This scanned wallet itself is flagged as a known threat: ${maliciousCheck.label ?? "Malicious Entity"}. Do NOT interact or send funds.`,
+      });
+      if (malInfo) {
+        flags.push({
+          label: `Registry Flagged: ${THREAT_CATEGORIES[malInfo.type]?.label || "Malicious Activity"}`,
+          severity: "DANGER",
+          description: malInfo.description || "Address flagged for malicious activity on Solana.",
+        });
+      }
+    }
+  }
   
   const hasFrozen = holdings.some((h) => h.isFrozen);
   if (hasFrozen) {
@@ -97,6 +124,29 @@ export function buildWalletRiskFlags(
         description: `Wallet was targeted by ${mevCount} known MEV/sandwich bot(s). Consider using MEV protection for future swaps.`,
       });
     }
+  }
+
+  // NEW — malicious transaction flags from dev guide
+  const maliciousTxs = transactions.filter((t) => t.isMalicious);
+  if (maliciousTxs.length > 0) {
+    const labels = [...new Set(maliciousTxs.map((t) => t.maliciousLabel))].filter(Boolean).join(", ");
+    // Avoid duplicate flags if we already caught it in recentInteractions
+    if (!flags.some(f => f.label === "Malicious Wallet Interaction Detected" || f.label === "Interacted with Wallet Drainer/Attacker")) {
+      flags.push({
+        label: "Malicious Wallet Interaction Detected",
+        severity: "DANGER",
+        description: `This wallet has interacted with ${maliciousTxs.length} flagged address(es): ${labels}. Extreme caution advised.`,
+      });
+    }
+  }
+
+  const failedCount = transactions.filter((t) => t.status === "FAILED").length;
+  if (failedCount > 5) {
+    flags.push({
+      label: "High Failed Transaction Rate",
+      severity: "WARNING",
+      description: `${failedCount} of the last 25 transactions failed. May indicate bot activity or suspicious patterns.`,
+    });
   }
 
   return flags;

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isValidPublicKey, detectAddressType, fetchWalletData, fetchTokenData, fetchRecentActivity, fetchTokenTrades, connection } from "@/lib/solana";
 import { calculateRiskScore, getRiskLabel } from "@/lib/riskScoring";
 import { ScanResult } from "@/lib/types";
+import { checkMalicious } from "@/lib/maliciousDB";
+import { getMaliciousAddressInfo } from "@/lib/maliciousAddresses";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +13,18 @@ export async function POST(req: NextRequest) {
     }
 
     const trimmed = address.trim();
-    const addressType = await detectAddressType(trimmed);
+    let addressType = await detectAddressType(trimmed);
+
+    // Override unknown address type if the address itself is in our malicious registry
+    const maliciousCheck = checkMalicious(trimmed);
+    if (addressType === "unknown" && maliciousCheck.isMalicious) {
+      const malInfo = getMaliciousAddressInfo(trimmed);
+      if (malInfo && malInfo.type === "scam_token") {
+        addressType = "token";
+      } else {
+        addressType = "wallet";
+      }
+    }
 
     // Validate mode if user explicitly specified wallet or token
     if (mode === "wallet" && addressType !== "wallet") {

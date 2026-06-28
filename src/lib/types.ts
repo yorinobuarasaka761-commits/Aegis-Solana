@@ -111,6 +111,8 @@ export interface TokenData {
   fdv?: number;
   dexUrl?: string;
   pairAddress?: string; // AMM pool address (Raydium / pump.fun) — used to fetch live trades
+  currentPriceUSD: number;    // USD Price from Jupiter API
+  marketCapUSD: number;       // Market Cap calculated from Jupiter Price
 }
 
 export interface RiskFlag {

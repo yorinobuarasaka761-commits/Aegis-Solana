@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TokenHolding } from "@/lib/types";
 import { Coins, Search, ArrowUpRight, ArrowDownRight, TrendingUp, ExternalLink } from "lucide-react";
+import { formatUSDPrice } from "@/lib/prices";
 
 interface HoldingsListProps {
   holdings: TokenHolding[];
@@ -139,18 +140,16 @@ export default function HoldingsList({ holdings, totalValueUSD }: HoldingsListPr
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
                       <div className="font-mono text-sm text-zinc-300">
-                        {token.priceUsd > 0
-                          ? `$${token.priceUsd < 0.0001
-                              ? token.priceUsd.toExponential(2)
-                              : token.priceUsd < 1
-                                ? token.priceUsd.toFixed(6)
-                                : fmt(token.priceUsd)}`
-                          : <span className="text-zinc-600">—</span>}
+                        {token.priceUsd > 0 ? (
+                          formatUSDPrice(token.priceUsd)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
                       {hasChange ? (
                         <div className={`flex items-center justify-end gap-1 text-sm font-bold ${isUp ? "text-emerald-400" : "text-rose-400"}`}>
                           {isUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
@@ -160,13 +159,15 @@ export default function HoldingsList({ holdings, totalValueUSD }: HoldingsListPr
                         <span className="text-zinc-600 text-sm">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-right">
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
                       <div className="font-mono text-sm text-zinc-300">
                         {token.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="font-mono text-sm font-bold text-emerald-400">${fmt(token.valueUSD)}</div>
+                    <td className="px-4 py-4 text-right whitespace-nowrap">
+                      <div className="font-mono text-sm font-bold text-emerald-400">
+                        {token.valueUSD > 0 ? `$${fmt(token.valueUSD)}` : <span className="text-zinc-600">—</span>}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

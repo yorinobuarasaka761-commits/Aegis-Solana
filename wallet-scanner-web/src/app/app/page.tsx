@@ -49,6 +49,8 @@ const DEFAULT_PRELOADED_RESULT: ScanResult = {
     fdv: 68818,
     dexUrl: "https://dexscreener.com/solana/69dnb69d4pqfbe3x45zqd3q3ub1oambsxzizvnyixahh",
     pairAddress: "69dnb69d4pqfbe3x45zqd3q3ub1oambsxzizvnyixahh",
+    currentPriceUSD: 0.00006881,
+    marketCapUSD: 68818,
     riskFlags: [
       { label: "Mint authority renounced", severity: "INFO", description: "Token supply is fixed." },
       { label: "Freeze authority renounced", severity: "INFO", description: "Token balances cannot be frozen." },

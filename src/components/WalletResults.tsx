@@ -6,6 +6,8 @@ import {
   Activity, Wallet, TrendingUp, Copy, CheckCheck,
 } from "lucide-react";
 import { useState } from "react";
+import { formatUSDPrice } from "@/lib/prices";
+
 
 function fmt(n: number, decimals = 2) {
   return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -30,6 +32,14 @@ export default function WalletResults({ data, address, tab = "audit" }: { data: 
 
   return (
     <div className="space-y-6">
+
+      {/* Price Feed Status Warning */}
+      {data.totalValueUSD === 0 && data.tokenHoldings.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-3 text-amber-400">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span className="text-xs">Price data temporarily unavailable. Portfolio value and token valuations are not loaded.</span>
+        </div>
+      )}
 
       {/* ── Overview Header Card (Solscan-style) ── */}
       <div className="bg-[#0B0F1A]/90 backdrop-blur-xl border border-zinc-800/80 rounded-3xl overflow-hidden glow-card">
@@ -299,18 +309,16 @@ export default function WalletResults({ data, address, tab = "audit" }: { data: 
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
                         <div className="font-mono text-sm text-zinc-300">
-                          {token.priceUsd > 0
-                            ? `$${token.priceUsd < 0.0001
-                                ? token.priceUsd.toExponential(2)
-                                : token.priceUsd < 1
-                                  ? token.priceUsd.toFixed(6)
-                                  : fmt(token.priceUsd)}`
-                            : <span className="text-zinc-600">—</span>}
+                          {token.priceUsd > 0 ? (
+                            formatUSDPrice(token.priceUsd)
+                          ) : (
+                            <span className="text-zinc-600">—</span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
                         {hasChange ? (
                           <div className={`flex items-center justify-end gap-1 text-sm font-bold ${isUp ? "text-emerald-400" : "text-rose-400"}`}>
                             {isUp ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
@@ -320,13 +328,15 @@ export default function WalletResults({ data, address, tab = "audit" }: { data: 
                           <span className="text-zinc-600 text-sm">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
                         <div className="font-mono text-sm text-zinc-300">
                           {token.balance.toLocaleString(undefined, { maximumFractionDigits: token.decimals > 4 ? 4 : token.decimals })}
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="font-mono text-sm font-bold text-emerald-400">${fmt(token.valueUSD)}</div>
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
+                        <div className="font-mono text-sm font-bold text-emerald-400">
+                          {token.valueUSD > 0 ? `$${fmt(token.valueUSD)}` : <span className="text-zinc-600">—</span>}
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">

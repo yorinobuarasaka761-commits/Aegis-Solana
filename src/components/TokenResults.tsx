@@ -1,5 +1,6 @@
 import { TokenData } from "@/lib/types";
 import { ShieldAlert, AlertTriangle, Info, ShieldCheck, Database, FileCode2, LineChart, Droplets, ExternalLink, Activity } from "lucide-react";
+import { formatUSD, formatUSDPrice } from "@/lib/prices";
 
 export default function TokenResults({ data, tab = "audit" }: { data: TokenData; tab?: "audit" | "holdings" }) {
   return (
@@ -37,7 +38,11 @@ export default function TokenResults({ data, tab = "audit" }: { data: TokenData;
                   Price (USD)
                 </div>
                 <div className="font-mono text-xl font-bold text-white">
-                  ${data.priceUsd ? data.priceUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : "0.00"}
+                  {data.priceUsd || data.currentPriceUSD ? (
+                    formatUSDPrice(data.priceUsd || data.currentPriceUSD)
+                  ) : (
+                    <span className="text-zinc-600">—</span>
+                  )}
                 </div>
               </div>
               <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
@@ -58,10 +63,14 @@ export default function TokenResults({ data, tab = "audit" }: { data: TokenData;
               </div>
               <div className="p-4 bg-black/40 rounded-2xl border border-white/5">
                 <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  FDV
+                  FDV / Market Cap
                 </div>
                 <div className="font-mono text-xl font-bold text-zinc-300">
-                  ${data.fdv ? data.fdv.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "0"}
+                  {data.fdv || data.marketCapUSD ? (
+                    `$${(data.fdv || data.marketCapUSD).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  ) : (
+                    <span className="text-zinc-600">—</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -81,6 +90,18 @@ export default function TokenResults({ data, tab = "audit" }: { data: TokenData;
               <div>
                 <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Token Decimals</div>
                 <div className="font-mono text-zinc-300">{data.decimals}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Current Price (Jupiter)</div>
+                <div className="font-mono text-lg text-white">
+                  {data.currentPriceUSD > 0 ? formatUSD(data.currentPriceUSD) : <span className="text-zinc-500 text-sm">Not Listed</span>}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Market Cap (Jupiter)</div>
+                <div className="font-mono text-lg text-white">
+                  {data.marketCapUSD > 0 ? formatUSD(data.marketCapUSD) : <span className="text-zinc-500 text-sm">Unknown</span>}
+                </div>
               </div>
               <div>
                 <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Jupiter Verification</div>

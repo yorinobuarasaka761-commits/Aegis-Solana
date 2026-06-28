@@ -5,6 +5,8 @@ import { buildTokenRiskFlags, buildWalletRiskFlags, assessTokenRisk } from "./ri
 import { MALICIOUS_ADDRESSES } from "./maliciousAddresses";
 import { fetchWalletTransactions } from "./transactions";
 import { addMaliciousAddress } from "./maliciousDB";
+import { fetchPrices, fetchTokenPrice, SOL_MINT } from "./prices";
+
 
 const RPC_URL = process.env.SOLANA_RPC_URL ?? "https://api.mainnet-beta.solana.com";
 
@@ -14,7 +16,6 @@ const HELIUS_API_KEY = RPC_URL.match(/api-key=([^&]+)/)?.[1] ?? null;
 const SYSTEM_PROGRAM = "11111111111111111111111111111111";
 const TOKEN_PROGRAM  = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const TOKEN_2022     = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
-const SOL_MINT       = "So11111111111111111111111111111111111111112";
 
 export const connection = new Connection(RPC_URL, "confirmed");
 
@@ -25,7 +26,7 @@ export function isValidPublicKey(address: string): boolean {
 
 export async function detectAddressType(address: string): Promise<AddressType> {
   const info = await connection.getAccountInfo(new PublicKey(address));
-  if (!info) return "unknown";
+  if (!info) return "wallet"; // Unfunded/new accounts are wallets
   const owner = info.owner.toBase58();
   if (owner === SYSTEM_PROGRAM) return "wallet";
   if (owner === TOKEN_PROGRAM || owner === TOKEN_2022) return "token";
@@ -180,9 +181,19 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
       .filter((h): h is TokenHolding => h !== null);
   }
 
-  // ── 4. For tokens still missing prices, use Jupiter Lite + DexScreener ──
-  const missingPrice = rawHoldings.filter((h) => h.priceUsd === 0);
+  // ── 4. Fetch all prices via Jupiter Price API v6 ──────────────────────────
+  const allMints = [SOL_MINT, ...rawHoldings.map((h) => h.mint)];
+  let prices: Record<string, number> = {};
+  try {
+    prices = await fetchPrices(allMints);
+  } catch (err) {
+    console.error("Failed to fetch prices:", err);
+  }
 
+  const solPrice = prices[SOL_MINT] ?? 0;
+  const solBalanceUSD = solBalance * solPrice;
+
+  // ── 5. Fetch 24h change & metadata from DexScreener for holdings ────────
   interface DexPairInfo {
     price?: number;
     change24h?: number;
@@ -190,104 +201,46 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     logo?: string;
     _liq?: number;
   }
-
-  if (missingPrice.length > 0) {
-    const mints = missingPrice.map((h) => h.mint);
-
-    // Jupiter Lite v2 (price is returned as string)
-    const jupPrices: Record<string, number> = {};
-    try {
-      for (let i = 0; i < mints.length; i += 100) {
-        const batch = [...mints.slice(i, i + 100), SOL_MINT].join(",");
-        const r = await fetch(`https://lite-api.jup.ag/price/v2?ids=${batch}`);
-        if (r.ok) {
-          const d = await r.json();
-          if (d && d.data) {
-            for (const [mint, info] of Object.entries(d.data as Record<string, { price?: string } | null | undefined>)) {
-              const p = parseFloat(info?.price ?? "0");
-              if (!isNaN(p) && p > 0) jupPrices[mint] = p;
-            }
-          }
-        }
-      }
-    } catch {}
-
-    // DexScreener as secondary fallback + 24h change + logo for all holdings
-    const dexData: Record<string, DexPairInfo> = {};
-    try {
-      for (let i = 0; i < rawHoldings.length; i += 30) {
-        const batch = rawHoldings.slice(i, i + 30).map((h) => h.mint).join(",");
-        const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch}`);
-        if (!r.ok) continue;
-        const d = await r.json();
-        for (const pair of d?.pairs ?? []) {
-          const addr = pair.baseToken?.address;
-          if (!addr) continue;
-          const liq = pair.liquidity?.usd ?? 0;
-          if (!dexData[addr] || liq > (dexData[addr]._liq ?? 0)) {
-            dexData[addr] = {
-              price: parseFloat(pair.priceUsd ?? "0") || 0,
-              change24h: pair.priceChange?.h24,
-              dexUrl: pair.url,
-              logo: pair.info?.imageUrl,
-              _liq: liq,
-            };
-          }
-        }
-      }
-    } catch {}
-
-    // Merge Jupiter + DexScreener prices into raw holdings
-    rawHoldings = rawHoldings.map((h) => {
-      if (h.priceUsd > 0) {
-        // Already priced by DAS; still grab change24h + dexUrl from DexScreener
-        const dex = dexData[h.mint];
-        return { ...h, change24h: dex?.change24h, dexUrl: dex?.dexUrl, logoUri: h.logoUri ?? dex?.logo };
-      }
-      const jupPrice = jupPrices[h.mint] ?? 0;
-      const dex = dexData[h.mint];
-      const price = jupPrice > 0 ? jupPrice : (dex?.price ?? 0);
-      const valueUSD = h.balance * price;
-      return { ...h, priceUsd: price, valueUSD, change24h: dex?.change24h, dexUrl: dex?.dexUrl, logoUri: h.logoUri ?? dex?.logo };
-    });
-  } else {
-    // Still grab change24h + dexUrl from DexScreener for display
-    try {
-      for (let i = 0; i < rawHoldings.length; i += 30) {
-        const batch = rawHoldings.slice(i, i + 30).map((h) => h.mint).join(",");
-        const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch}`);
-        if (!r.ok) continue;
-        const d = await r.json();
-        const dexMap: Record<string, DexPairInfo> = {};
-        for (const pair of d?.pairs ?? []) {
-          const addr = pair.baseToken?.address;
-          if (!addr) continue;
-          const liq = pair.liquidity?.usd ?? 0;
-          if (!dexMap[addr] || liq > (dexMap[addr]._liq ?? 0)) {
-            dexMap[addr] = { change24h: pair.priceChange?.h24, dexUrl: pair.url, logo: pair.info?.imageUrl, _liq: liq };
-          }
-        }
-        rawHoldings = rawHoldings.map((h) => {
-          const dex = dexMap[h.mint];
-          return dex ? { ...h, change24h: dex.change24h, dexUrl: dex.dexUrl, logoUri: h.logoUri ?? dex.logo } : h;
-        });
-      }
-    } catch {}
-  }
-
-  // ── 5. SOL price ────────────────────────────────────────────────────────
-  let solPrice = 0;
+  const dexData: Record<string, DexPairInfo> = {};
   try {
-    const r = await fetch(`https://lite-api.jup.ag/price/v2?ids=${SOL_MINT}`);
-    if (r.ok) { const d = await r.json(); solPrice = parseFloat(d?.data?.[SOL_MINT]?.price ?? "0") || 0; }
+    for (let i = 0; i < rawHoldings.length; i += 30) {
+      const batch = rawHoldings.slice(i, i + 30).map((h) => h.mint).join(",");
+      const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch}`);
+      if (!r.ok) continue;
+      const d = await r.json();
+      for (const pair of d?.pairs ?? []) {
+        const addr = pair.baseToken?.address;
+        if (!addr) continue;
+        const liq = pair.liquidity?.usd ?? 0;
+        if (!dexData[addr] || liq > (dexData[addr]._liq ?? 0)) {
+          dexData[addr] = {
+            price: parseFloat(pair.priceUsd ?? "0") || 0,
+            change24h: pair.priceChange?.h24,
+            dexUrl: pair.url,
+            logo: pair.info?.imageUrl,
+            _liq: liq,
+          };
+        }
+      }
+    }
   } catch {}
-  if (solPrice === 0) {
-    try {
-      const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
-      if (r.ok) { const d = await r.json(); solPrice = d?.solana?.usd ?? 0; }
-    } catch {}
-  }
-  const solBalanceUSD = solBalance * solPrice;
+
+  // ── 6. Enrich raw holdings with prices & DexScreener stats ─────────────
+  rawHoldings = rawHoldings.map((h) => {
+    const jupPrice = prices[h.mint] ?? 0;
+    const dex = dexData[h.mint];
+    // Prioritize Jupiter price, fall back to DAS (if helius has it) or DexScreener
+    const price = jupPrice > 0 ? jupPrice : (h.priceUsd > 0 ? h.priceUsd : (dex?.price ?? 0));
+    const valueUSD = h.balance * price;
+    return {
+      ...h,
+      priceUsd: price,
+      valueUSD,
+      change24h: dex?.change24h,
+      dexUrl: dex?.dexUrl,
+      logoUri: h.logoUri ?? dex?.logo
+    };
+  });
 
   // ── 6. Recent Transaction & Interaction Scan (Low Credit, Limit 20) ──
   const recentInteractions: MaliciousInteraction[] = [];
@@ -483,6 +436,15 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
     }
   } catch {}
 
+  let currentPriceUSD = 0;
+  let marketCapUSD = 0;
+  try {
+    currentPriceUSD = await fetchTokenPrice(address);
+    marketCapUSD = currentPriceUSD * supply;
+  } catch (err) {
+    console.error("Failed to fetch token price from Jupiter:", err);
+  }
+
   return {
     name, symbol,
     decimals: mint.decimals,
@@ -491,6 +453,8 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
     riskFlags: buildTokenRiskFlags({ mintAuthority, freezeAuthority, updateAuthority, supply, isVerified }),
     priceUsd, volume24h, liquidity, fdv, dexUrl,
     pairAddress: pairAddress || undefined,
+    currentPriceUSD,
+    marketCapUSD,
   };
 }
 

@@ -28,6 +28,7 @@ async function fetchOnChainMetadata(
   mintAddress: string,
   connection: Connection
 ): Promise<{ name?: string; symbol?: string } | null> {
+  // 1. Try Metaplex Metadata PDA (Legacy SPL Token Program)
   try {
     const mint = new PublicKey(mintAddress);
     const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
@@ -40,22 +41,38 @@ async function fetchOnChainMetadata(
       METADATA_PROGRAM_ID
     );
     const info = await connection.getAccountInfo(pda);
-    if (!info || !info.data || info.data.length < 115) return null;
+    if (info && info.data && info.data.length >= 115) {
+      const nameLen = info.data.readUInt32LE(65);
+      const nameBytes = info.data.slice(69, 69 + nameLen);
+      const name = nameBytes.toString("utf8").replace(/\0/g, "").trim();
 
-    const nameLen = info.data.readUInt32LE(65);
-    const nameBytes = info.data.slice(69, 69 + nameLen);
-    const name = nameBytes.toString("utf8").replace(/\0/g, "").trim();
+      const symbolLen = info.data.readUInt32LE(101);
+      const symbolBytes = info.data.slice(105, 105 + symbolLen);
+      const symbol = symbolBytes.toString("utf8").replace(/\0/g, "").trim();
 
-    const symbolLen = info.data.readUInt32LE(101);
-    const symbolBytes = info.data.slice(105, 105 + symbolLen);
-    const symbol = symbolBytes.toString("utf8").replace(/\0/g, "").trim();
-
-    if (name && symbol) {
-      return { name, symbol };
+      if (name && symbol) {
+        return { name, symbol };
+      }
     }
   } catch (e) {
-    console.error("[Aegis] Failed to fetch on-chain Metaplex metadata:", e);
+    console.error("[Aegis] Failed to fetch Metaplex metadata:", e);
   }
+
+  // 2. Try Token-2022 Native Metadata Extension
+  try {
+    const mint = new PublicKey(mintAddress);
+    const { getTokenMetadata } = await import("@solana/spl-token");
+    const metadata = await getTokenMetadata(connection, mint);
+    if (metadata) {
+      return {
+        name: metadata.name?.trim(),
+        symbol: metadata.symbol?.trim(),
+      };
+    }
+  } catch (e) {
+    // Fail silently — token doesn't use Token-2022 metadata extensions
+  }
+
   return null;
 }
 

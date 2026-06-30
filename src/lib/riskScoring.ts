@@ -152,9 +152,9 @@ export function buildWalletRiskFlags(
   return flags;
 }
 
-export function assessTokenRisk(isFrozen: boolean, meta: unknown): "SAFE" | "CAUTION" | "DANGER" {
+export function assessTokenRisk(isFrozen: boolean, isVerified: boolean): "SAFE" | "CAUTION" | "DANGER" {
   if (isFrozen) return "DANGER";
-  if (!meta) return "CAUTION";
+  if (!isVerified) return "CAUTION";
   return "SAFE";
 }
 

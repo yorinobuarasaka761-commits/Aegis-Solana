@@ -177,7 +177,7 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
             priceUsd,
             valueUSD,
             change24h: undefined,
-            riskLevel: assessTokenRisk(false, info.symbol ? { symbol, name } : undefined),
+            riskLevel: "CAUTION", // Will be re-assessed during enrichment
             isFrozen: false,
             logoUri: logo,
             dexUrl: undefined,
@@ -198,39 +198,52 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
       connection.getParsedTokenAccountsByOwner(pubkey, { programId: new PublicKey(TOKEN_2022) }),
     ]);
 
-    const jupiterMap: Record<string, { symbol: string; name: string; logoURI?: string }> = {};
-    try {
-      const res = await fetch("https://token.jup.ag/all", { next: { revalidate: 3600 } } as RequestInit);
-      if (res.ok) {
-        const tokens = (await res.json()) as Array<{ address: string; symbol: string; name: string; logoURI?: string }>;
-        for (const t of tokens) jupiterMap[t.address] = t;
-      }
-    } catch {}
-
     rawHoldings = [...legacy.value, ...t22.value]
       .map((acct): TokenHolding | null => {
         const info = acct.account.data.parsed?.info;
         if (!info) return null;
         const mint = info.mint;
-        const meta = jupiterMap[mint];
         const isFrozen = info.state === "frozen";
         const balance = info.tokenAmount?.uiAmount ?? 0;
         if (balance <= 0) return null;
         return {
           mint,
-          symbol: meta?.symbol ?? mint.slice(0, 6) + "...",
-          name: meta?.name ?? `${mint.slice(0, 6)}...${mint.slice(-4)}`,
+          symbol: mint.slice(0, 6) + "...",
+          name: `${mint.slice(0, 6)}...${mint.slice(-4)}`,
           balance,
           decimals: info.tokenAmount?.decimals ?? 0,
           priceUsd: 0, valueUSD: 0,
           change24h: undefined,
-          riskLevel: assessTokenRisk(isFrozen, meta),
+          riskLevel: "CAUTION", // Will be re-assessed during enrichment
           isFrozen,
-          logoUri: meta?.logoURI,
+          logoUri: undefined,
           dexUrl: undefined,
         };
       })
       .filter((h): h is TokenHolding => h !== null);
+  }
+
+  // ── 3.5. Fetch Jupiter Verification list for all holdings ───────────────
+  const jupiterMap: Record<string, { symbol: string; name: string; logoURI?: string; isVerified?: boolean }> = {};
+  const holdingsMints = rawHoldings.map((h) => h.mint);
+  try {
+    for (let i = 0; i < holdingsMints.length; i += 25) {
+      const batch = holdingsMints.slice(i, i + 25).join(",");
+      const res = await fetch(`https://api.jup.ag/tokens/v2/search?query=${batch}`);
+      if (res.ok) {
+        const tokens = await res.json();
+        for (const t of tokens) {
+          jupiterMap[t.id] = {
+            symbol: t.symbol,
+            name: t.name,
+            logoURI: t.icon,
+            isVerified: t.isVerified === true,
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Aegis] Failed to fetch Jupiter verification map:", err);
   }
 
   // ── 4. Fetch all prices via Jupiter Price API v6 ──────────────────────────
@@ -285,14 +298,18 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
   rawHoldings = rawHoldings.map((h) => {
     const jupPrice = prices[h.mint] ?? 0;
     const dex = dexData[h.mint];
+    const meta = jupiterMap[h.mint];
+    
     // Prioritize Jupiter price, fall back to DAS (if helius has it) or DexScreener
     const price = jupPrice > 0 ? jupPrice : (h.priceUsd > 0 ? h.priceUsd : (dex?.price ?? 0));
     const valueUSD = h.balance * price;
     
-    // Fallback name/symbol from DexScreener if not verified on Jupiter
-    const defaultPlaceholder = `${h.mint.slice(0, 6)}...${h.mint.slice(-4)}`;
-    const name = h.name === defaultPlaceholder ? (dex?.name ?? h.name) : h.name;
-    const symbol = h.symbol.endsWith("...") ? (dex?.symbol ?? h.symbol) : h.symbol;
+    const isVerified = meta?.isVerified === true;
+    
+    // Fallback name/symbol/logo from DexScreener/Helius if not verified on Jupiter
+    const symbol = meta?.symbol ?? (dex?.symbol ?? h.symbol);
+    const name = meta?.name ?? (dex?.name ?? h.name);
+    const logoUri = meta?.logoURI ?? (h.logoUri ?? dex?.logo);
 
     return {
       ...h,

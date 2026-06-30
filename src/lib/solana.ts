@@ -460,13 +460,16 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
     isVerified = true;
   } else {
     try {
-      const r = await fetch(`https://tokens.jup.ag/token/${address}`);
+      const r = await fetch(`https://api.jup.ag/tokens/v2/search?query=${address}`);
       if (r.ok) {
-        const d = await r.json();
-        name = d.name;
-        symbol = d.symbol;
-        metadataUri = d.logoURI;
-        isVerified = true;
+        const tokens = await r.json();
+        if (tokens.length > 0) {
+          const d = tokens[0];
+          name = d.name;
+          symbol = d.symbol;
+          metadataUri = d.icon;
+          isVerified = d.isVerified === true;
+        }
       }
     } catch {}
   }

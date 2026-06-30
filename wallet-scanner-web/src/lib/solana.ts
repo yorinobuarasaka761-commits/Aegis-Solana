@@ -251,6 +251,8 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     change24h?: number;
     dexUrl?: string;
     logo?: string;
+    name?: string;
+    symbol?: string;
     _liq?: number;
   }
   const dexData: Record<string, DexPairInfo> = {};
@@ -270,6 +272,8 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
             change24h: pair.priceChange?.h24,
             dexUrl: pair.url,
             logo: pair.info?.imageUrl,
+            name: pair.baseToken?.name,
+            symbol: pair.baseToken?.symbol,
             _liq: liq,
           };
         }
@@ -284,8 +288,15 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     // Prioritize Jupiter price, fall back to DAS (if helius has it) or DexScreener
     const price = jupPrice > 0 ? jupPrice : (h.priceUsd > 0 ? h.priceUsd : (dex?.price ?? 0));
     const valueUSD = h.balance * price;
+    
+    // Fallback name/symbol from DexScreener if not verified on Jupiter
+    const name = h.name === "Unknown Token" ? (dex?.name ?? h.name) : h.name;
+    const symbol = h.symbol.endsWith("...") ? (dex?.symbol ?? h.symbol) : h.symbol;
+
     return {
       ...h,
+      name,
+      symbol,
       priceUsd: price,
       valueUSD,
       change24h: dex?.change24h,
@@ -345,6 +356,18 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
   const filteredHoldings = rawHoldings
     .filter((h) => h.valueUSD >= 10)
     .sort((a, b) => b.valueUSD - a.valueUSD);
+
+  // ── 8. Resolve on-chain metadata for remaining unverified holdings ──
+  for (let i = 0; i < filteredHoldings.length; i++) {
+    const h = filteredHoldings[i];
+    if (h.name === "Unknown Token" || h.symbol.endsWith("...")) {
+      const onChain = await fetchOnChainMetadata(h.mint, connection);
+      if (onChain) {
+        h.name = onChain.name || h.name;
+        h.symbol = onChain.symbol || h.symbol;
+      }
+    }
+  }
 
   const totalValueUSD = filteredHoldings.reduce((s, h) => s + h.valueUSD, solBalanceUSD);
 

@@ -24,6 +24,41 @@ export function isValidPublicKey(address: string): boolean {
   catch { return false; }
 }
 
+async function fetchOnChainMetadata(
+  mintAddress: string,
+  connection: Connection
+): Promise<{ name?: string; symbol?: string } | null> {
+  try {
+    const mint = new PublicKey(mintAddress);
+    const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
+    const [pda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("metadata"),
+        METADATA_PROGRAM_ID.toBuffer(),
+        mint.toBuffer(),
+      ],
+      METADATA_PROGRAM_ID
+    );
+    const info = await connection.getAccountInfo(pda);
+    if (!info || !info.data || info.data.length < 115) return null;
+
+    const nameLen = info.data.readUInt32LE(65);
+    const nameBytes = info.data.slice(69, 69 + nameLen);
+    const name = nameBytes.toString("utf8").replace(/\0/g, "").trim();
+
+    const symbolLen = info.data.readUInt32LE(101);
+    const symbolBytes = info.data.slice(105, 105 + symbolLen);
+    const symbol = symbolBytes.toString("utf8").replace(/\0/g, "").trim();
+
+    if (name && symbol) {
+      return { name, symbol };
+    }
+  } catch (e) {
+    console.error("[Aegis] Failed to fetch on-chain Metaplex metadata:", e);
+  }
+  return null;
+}
+
 export async function detectAddressType(address: string): Promise<AddressType> {
   const info = await connection.getAccountInfo(new PublicKey(address));
   if (!info) return "wallet"; // Unfunded/new accounts are wallets
@@ -407,6 +442,14 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
       }
     }
   } catch {}
+
+  if ((name === "Unknown Token" || symbol === "???") && !localFallback) {
+    const onChain = await fetchOnChainMetadata(address, connection);
+    if (onChain) {
+      name = onChain.name || name;
+      symbol = onChain.symbol || symbol;
+    }
+  }
 
   let currentPriceUSD = 0;
   let marketCapUSD = 0;

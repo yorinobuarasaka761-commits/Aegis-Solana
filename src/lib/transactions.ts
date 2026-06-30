@@ -24,32 +24,41 @@ export async function fetchWalletTransactions(
   if (!signatures || signatures.length === 0) return [];
 
   // Step 2: Fetch full transaction details
-  // Batch in groups of 10 to avoid hammering RPC
-  const results: ParsedTransaction[] = [];
-  const chunks = chunkArray(signatures, 10);
-
-  for (const chunk of chunks) {
-    const txDetails = await Promise.allSettled(
-      chunk.map((sig) =>
-        connection.getParsedTransaction(sig.signature, {
+  let results: ParsedTransaction[] = [];
+  try {
+    const sigStrings = signatures.map((s) => s.signature);
+    
+    // Retry with backoff for 429s
+    let txs: any[] = [];
+    let retries = 3;
+    let delayMs = 500;
+    while (retries > 0) {
+      try {
+        txs = await connection.getParsedTransactions(sigStrings, {
           maxSupportedTransactionVersion: 0,
-        })
-      )
-    );
-
-    for (let i = 0; i < chunk.length; i++) {
-      const sig = chunk[i];
-      const detail = txDetails[i];
-
-      if (detail.status === "rejected" || !detail.value) {
-        // Skip failed fetches — don't hallucinate data
-        continue;
+        });
+        break;
+      } catch (err: any) {
+        const isRateLimit = err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429;
+        if (isRateLimit && retries > 1) {
+          retries--;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          delayMs *= 2;
+        } else {
+          throw err;
+        }
       }
+    }
 
-      const tx = detail.value;
+    for (let i = 0; i < txs.length; i++) {
+      const tx = txs[i];
+      if (!tx) continue;
+      const sig = signatures[i];
       const parsed = parseTx(tx, address, sig.signature, sig.blockTime ?? null);
       if (parsed) results.push(parsed);
     }
+  } catch (err) {
+    console.error("[Aegis] getParsedTransactions failed after retries:", err);
   }
 
   return results;

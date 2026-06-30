@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidPublicKey, detectAddressType, fetchWalletData, fetchTokenData, fetchRecentActivity, fetchTokenTrades, connection } from "@/lib/solana";
+import { isValidPublicKey, detectAddressType, fetchWalletData, fetchTokenData, fetchTokenTrades, connection } from "@/lib/solana";
 import { calculateRiskScore, getRiskLabel } from "@/lib/riskScoring";
 import { ScanResult } from "@/lib/types";
 import { checkMalicious } from "@/lib/maliciousDB";
@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
       result.wallet = walletData;
       result.riskScore = calculateRiskScore(walletData.riskFlags);
       result.riskLabel = getRiskLabel(result.riskScore);
-      result.recentActivity = await fetchRecentActivity(trimmed, connection);
     }
 
     if (addressType === "token") {

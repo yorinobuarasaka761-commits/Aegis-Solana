@@ -398,40 +398,40 @@ export default function ScannerApp() {
                                 {/* Dashboards tabs for details */}
                                 {(result.type === "wallet" || result.type === "token") && (
                                     <div className="space-y-6">
-                                        <div className="flex border-b border-zinc-800/80 gap-6">
+                                        <div className="flex border-b border-zinc-800/80 gap-4 sm:gap-6 overflow-x-auto scrollbar-none whitespace-nowrap">
                                             <button
                                                 onClick={() => setActiveTab("audit")}
-                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
+                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile shrink-0 ${
                                                     activeTab === "audit"
                                                         ? "border-brand-primary text-white"
                                                         : "border-transparent text-zinc-500 hover:text-zinc-300"
                                                 }`}
                                             >
-                                                <FileText className="w-4 h-4" />
+                                                <FileText className="w-4 h-4 shrink-0" />
                                                 Security Audit
                                             </button>
                                             
                                             <button
                                                 onClick={() => setActiveTab("holdings")}
-                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
+                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile shrink-0 ${
                                                     activeTab === "holdings"
                                                         ? "border-brand-primary text-white"
                                                         : "border-transparent text-zinc-500 hover:text-zinc-300"
                                                 }`}
                                             >
-                                                <Database className="w-4 h-4" />
+                                                <Database className="w-4 h-4 shrink-0" />
                                                 {result.type === "token" ? "Contract Info" : "Holdings Portfolio"}
                                             </button>
 
                                             <button
                                                 onClick={() => setActiveTab("activity")}
-                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile ${
+                                                className={`pb-4 text-[10px] font-mono font-extrabold uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 active-tactile shrink-0 ${
                                                     activeTab === "activity"
                                                         ? "border-brand-primary text-white"
                                                         : "border-transparent text-zinc-500 hover:text-zinc-300"
                                                 }`}
                                             >
-                                                <Activity className="w-4 h-4" />
+                                                <Activity className="w-4 h-4 shrink-0" />
                                                 Recent Activity
                                             </button>
                                         </div>

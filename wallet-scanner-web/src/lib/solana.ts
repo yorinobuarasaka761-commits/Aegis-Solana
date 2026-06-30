@@ -242,53 +242,15 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     };
   });
 
-  // ── 6. Recent Transaction & Interaction Scan (Low Credit, Limit 20) ──
-  const recentInteractions: MaliciousInteraction[] = [];
+  let transactions: ParsedTransaction[] = [];
   try {
-    const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 20 });
-    if (signatures && signatures.length > 0) {
-      const sigStrings = signatures.map((s) => s.signature);
-      // Batch fetch parsed transactions
-      const txs = await connection.getParsedTransactions(sigStrings, { maxSupportedTransactionVersion: 0 });
-      for (let i = 0; i < txs.length; i++) {
-        const tx = txs[i];
-        if (!tx) continue;
-        const sigInfo = signatures[i];
-        const blockTime = sigInfo.blockTime
-          ? new Date(sigInfo.blockTime * 1000).toLocaleString()
-          : "Unknown time";
-
-        const message = tx.transaction.message;
-        const accountKeys = message.accountKeys;
-        for (const keyObj of accountKeys) {
-          const pubkeyObj = (keyObj as { pubkey?: PublicKey }).pubkey || (keyObj as unknown as PublicKey);
-          if (!pubkeyObj || typeof pubkeyObj.toBase58 !== "function") continue;
-          const accAddress = pubkeyObj.toBase58();
-          if (accAddress === address) continue;
-
-          const malInfo = MALICIOUS_ADDRESSES[accAddress];
-          if (malInfo) {
-            addMaliciousAddress(
-              address,
-              `Auto-flagged: Interacted with ${malInfo.name}`
-            );
-            if (!recentInteractions.some((item) => item.address === accAddress)) {
-              recentInteractions.push({
-                address: accAddress,
-                name: malInfo.name,
-                type: malInfo.type,
-                description: malInfo.description,
-                signature: sigInfo.signature,
-                timestamp: blockTime,
-              });
-            }
-          }
-        }
-      }
-    }
+    transactions = await fetchWalletTransactions(connection, address);
   } catch (err) {
-    console.error("Failed to scan recent signatures for malicious interactions:", err);
+    console.error("[Aegis] Transaction fetch failed silently:", err);
   }
+
+  // ── 6. Deriving recent malicious interactions from parsed transactions ──
+  const recentInteractions: MaliciousInteraction[] = [];
 
   // Check current holdings for scam tokens (all holdings, including those under $10, to be secure)
   for (const holding of rawHoldings) {
@@ -310,19 +272,29 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     }
   }
 
+  // Derive other interactions from parsed transactions
+  for (const tx of transactions) {
+    if (tx.isMalicious && tx.counterparty) {
+      const malInfo = MALICIOUS_ADDRESSES[tx.counterparty];
+      if (!recentInteractions.some((item) => item.address === tx.counterparty)) {
+        recentInteractions.push({
+          address: tx.counterparty,
+          name: malInfo?.name ?? tx.maliciousLabel ?? "Flagged Threat",
+          type: malInfo?.type ?? "drainer",
+          description: malInfo?.description ?? tx.maliciousLabel ?? "Interaction with flagged address",
+          signature: tx.signature,
+          timestamp: tx.timestamp,
+        });
+      }
+    }
+  }
+
   // ── 7. Filter dust (<$10), sort by value ────────────────────────────────
   const filteredHoldings = rawHoldings
     .filter((h) => h.valueUSD >= 10)
     .sort((a, b) => b.valueUSD - a.valueUSD);
 
   const totalValueUSD = filteredHoldings.reduce((s, h) => s + h.valueUSD, solBalanceUSD);
-
-  let transactions: ParsedTransaction[] = [];
-  try {
-    transactions = await fetchWalletTransactions(connection, address);
-  } catch (err) {
-    console.error("[Aegis] Transaction fetch failed silently:", err);
-  }
 
   return {
     solBalance,
@@ -483,176 +455,7 @@ export async function getUpdateAuthority(
   }
 }
 
-export async function fetchRecentActivity(
-  address: string,
-  connection: Connection
-): Promise<TransactionActivity[]> {
-  const pubkey = new PublicKey(address);
-  const activities: TransactionActivity[] = [];
 
-  try {
-    const signatures = await connection.getSignaturesForAddress(pubkey, { limit: 10 });
-    if (!signatures || signatures.length === 0) return [];
-
-    const sigStrings = signatures.map((s) => s.signature);
-    const txs = await connection.getParsedTransactions(sigStrings, { maxSupportedTransactionVersion: 0 });
-
-    for (let i = 0; i < txs.length; i++) {
-      const tx = txs[i];
-      if (!tx) continue;
-      
-      const sigInfo = signatures[i];
-      const signature = sigInfo.signature;
-      const timestamp = sigInfo.blockTime
-        ? new Date(sigInfo.blockTime * 1000).toLocaleString()
-        : "Unknown time";
-      const status = tx.meta?.err ? "failed" : "success";
-
-      let type: TransactionActivity["type"] = "contract_interaction";
-      let typeName = "Contract Interaction";
-      let amount: string | undefined;
-
-      const accountKeys = tx.transaction.message.accountKeys;
-      const myIndex = accountKeys.findIndex((ak) => {
-        const pk = ak.pubkey || ak;
-        return pk && typeof pk.toBase58 === "function" && pk.toBase58() === address;
-      });
-
-      if (myIndex !== -1 && tx.meta) {
-        const preSol = tx.meta.preBalances[myIndex];
-        const postSol = tx.meta.postBalances[myIndex];
-        const fee = tx.meta.fee;
-        const solChange = (postSol - preSol) / LAMPORTS_PER_SOL;
-        const feeAdjustedChange = myIndex === 0 ? solChange + (fee / LAMPORTS_PER_SOL) : solChange;
-
-        const tokenChanges: Array<{ mint: string; change: number; symbol?: string }> = [];
-        const preToken = tx.meta.preTokenBalances ?? [];
-        const postToken = tx.meta.postTokenBalances ?? [];
-
-        const allMints = Array.from(new Set([
-          ...preToken.map((t) => t.mint),
-          ...postToken.map((t) => t.mint),
-        ]));
-
-        for (const mint of allMints) {
-          const myPre = preToken.find((t) => t.owner === address && t.mint === mint);
-          const myPost = postToken.find((t) => t.owner === address && t.mint === mint);
-          const preAmt = myPre?.uiTokenAmount.uiAmount ?? 0;
-          const postAmt = myPost?.uiTokenAmount.uiAmount ?? 0;
-          const diff = postAmt - preAmt;
-          if (Math.abs(diff) > 0.000001) {
-            const WELL_KNOWN_SYMBOLS: Record<string, string> = {
-              "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": "USDC",
-              "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": "USDT",
-              "So11111111111111111111111111111111111111112": "SOL",
-              "DezXAZ8z7PnrFcPybznJHzRmjJ89qYYea1R8k1tKBpfa": "BONK",
-            };
-            const symbol = WELL_KNOWN_SYMBOLS[mint] ?? `${mint.slice(0, 4)}...${mint.slice(-4)}`;
-            tokenChanges.push({ mint, change: diff, symbol });
-          }
-        }
-
-        if (tokenChanges.length >= 2 || (Math.abs(feeAdjustedChange) > 0.001 && tokenChanges.length >= 1)) {
-          type = "swap";
-          typeName = "Token Swap";
-          
-          let fromText = "";
-          let toText = "";
-
-          if (tokenChanges.length >= 2) {
-            const dec = tokenChanges.find((tc) => tc.change < 0);
-            const inc = tokenChanges.find((tc) => tc.change > 0);
-            if (dec && inc) {
-              fromText = `${Math.abs(dec.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${dec.symbol || "Token"}`;
-              toText = `${inc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${inc.symbol || "Token"}`;
-            }
-          } else if (tokenChanges.length === 1 && Math.abs(feeAdjustedChange) > 0.001) {
-            const tc = tokenChanges[0];
-            if (feeAdjustedChange < 0 && tc.change > 0) {
-              fromText = `${Math.abs(feeAdjustedChange).toFixed(4)} SOL`;
-              toText = `${tc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
-            } else if (feeAdjustedChange > 0 && tc.change < 0) {
-              fromText = `${Math.abs(tc.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
-              toText = `${feeAdjustedChange.toFixed(4)} SOL`;
-            }
-          }
-
-          if (fromText && toText) {
-            amount = `${fromText} → ${toText}`;
-          } else {
-            amount = "Swap Executed";
-          }
-        } else if (tokenChanges.length === 1) {
-          const tc = tokenChanges[0];
-          if (tc.change > 0) {
-            type = "transfer_in";
-            typeName = "Token Received";
-            amount = `+${tc.change.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
-          } else {
-            type = "transfer_out";
-            typeName = "Token Sent";
-            amount = `-${Math.abs(tc.change).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${tc.symbol || "Token"}`;
-          }
-        } else if (Math.abs(feeAdjustedChange) > 0.001) {
-          if (feeAdjustedChange > 0) {
-            type = "transfer_in";
-            typeName = "SOL Received";
-            amount = `+${feeAdjustedChange.toFixed(4)} SOL`;
-          } else {
-            type = "transfer_out";
-            typeName = "SOL Sent";
-            amount = `-${Math.abs(feeAdjustedChange).toFixed(4)} SOL`;
-          }
-        }
-      }
-
-      if (type === "contract_interaction") {
-        const programIds = tx.transaction.message.instructions.map((i) => {
-          const pid = i.programId || (i as { programId?: PublicKey }).programId;
-          return pid ? pid.toBase58() : "";
-        }).filter(Boolean);
-
-        const knownPrograms: Record<string, string> = {
-          "JUP6Lgp5gZXrNrTRN7QMw45zOB66g1B36t1wDLauC3o": "Jupiter Swap",
-          "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8": "Raydium V4 Swap",
-          "routehkwwNzjRCn9y5tTE4z2nC79B2KxV8mR4wD3m2": "Raydium Router",
-          "Orcert2EB7a1b4W1FwJEDmeZaEsKhTczbd424B2CgBq": "Orca Swap",
-          "6EF8rrecthR5Dkzonr17F5vkR6qiYqrqbGvbuJ5PE9JY": "pump.fun Interaction",
-        };
-
-        let foundKnown = false;
-        for (const pid of programIds) {
-          if (knownPrograms[pid]) {
-            typeName = knownPrograms[pid];
-            if (typeName.includes("Swap")) {
-              type = "swap";
-            }
-            foundKnown = true;
-            break;
-          }
-        }
-
-        if (!foundKnown && programIds.length > 0) {
-          const pid = programIds[0];
-          typeName = `Interact with ${pid.slice(0, 6)}...${pid.slice(-4)}`;
-        }
-      }
-
-      activities.push({
-        signature,
-        timestamp,
-        type,
-        typeName,
-        amount,
-        status,
-      });
-    }
-  } catch (err) {
-    console.error("fetchRecentActivity failed:", err);
-  }
-
-  return activities;
-}
 
 /**
  * Fetch the 10 most recent BUY transactions for a token.

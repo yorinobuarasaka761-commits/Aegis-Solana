@@ -1,5 +1,4 @@
-// Jupiter Price API v6 — free, no API key required
-const JUPITER_PRICE_URL = "https://price.jup.ag/v6/price";
+const JUPITER_PRICE_URL = "https://api.jup.ag/price/v3";
 
 // SOL mint address (for SOL price lookup)
 export const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -26,12 +25,13 @@ export async function fetchPrices(
 
       if (!res.ok) continue;
 
-      const data = (await res.json()) as {
-        data: Record<string, { price?: number } | null | undefined>;
-      };
+      const data = (await res.json()) as Record<
+        string,
+        { usdPrice?: number } | null | undefined
+      >;
 
-      for (const [mint, info] of Object.entries(data.data)) {
-        const price = info?.price ?? 0;
+      for (const [mint, info] of Object.entries(data)) {
+        const price = info?.usdPrice ?? 0;
         allPrices[mint] = typeof price === "number" ? price : 0;
       }
     } catch {

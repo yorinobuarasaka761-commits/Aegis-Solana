@@ -5,6 +5,8 @@ import { TokenHolding } from "@/lib/types";
 import { Coins, Search, ArrowUpRight, ArrowDownRight, TrendingUp, ExternalLink } from "lucide-react";
 import { formatUSDPrice } from "@/lib/prices";
 
+import TokenIcon from "@/components/TokenIcon";
+
 interface HoldingsListProps {
   holdings: TokenHolding[];
   totalValueUSD: number;
@@ -126,13 +128,7 @@ export default function HoldingsList({ holdings, totalValueUSD }: HoldingsListPr
                     <td className="px-6 py-4 text-xs text-zinc-600 font-mono">{idx + 1}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        {token.logoUri ? (
-                          <img src={token.logoUri} alt={token.symbol} className="w-9 h-9 rounded-full border border-zinc-800 shrink-0" />
-                        ) : (
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-700 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-300 shrink-0">
-                            {token.symbol.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
+                        <TokenIcon mint={token.mint} symbol={token.symbol} logoUri={token.logoUri} />
                         <div>
                           <div className="text-sm font-bold text-zinc-100">{token.symbol}</div>
                           <div className="text-[11px] text-zinc-500 truncate max-w-[140px]">{token.name}</div>

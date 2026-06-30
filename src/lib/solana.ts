@@ -163,7 +163,7 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
           const balance = info.balance / Math.pow(10, info.decimals ?? 0);
           if (balance <= 0) return null;
           const symbol = info.symbol || asset.content?.metadata?.symbol || asset.id.slice(0, 6) + "...";
-          const name   = asset.content?.metadata?.name || info.symbol || "Unknown Token";
+          const name   = asset.content?.metadata?.name || info.symbol || `${asset.id.slice(0, 6)}...${asset.id.slice(-4)}`;
           const logo   = asset.content?.links?.image ?? asset.content?.files?.[0]?.uri;
           // Helius price_info gives us the USD price when available
           const priceUsd = info.price_info?.price_per_token ?? 0;
@@ -219,7 +219,7 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
         return {
           mint,
           symbol: meta?.symbol ?? mint.slice(0, 6) + "...",
-          name: meta?.name ?? "Unknown Token",
+          name: meta?.name ?? `${mint.slice(0, 6)}...${mint.slice(-4)}`,
           balance,
           decimals: info.tokenAmount?.decimals ?? 0,
           priceUsd: 0, valueUSD: 0,
@@ -290,7 +290,8 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     const valueUSD = h.balance * price;
     
     // Fallback name/symbol from DexScreener if not verified on Jupiter
-    const name = h.name === "Unknown Token" ? (dex?.name ?? h.name) : h.name;
+    const defaultPlaceholder = `${h.mint.slice(0, 6)}...${h.mint.slice(-4)}`;
+    const name = h.name === defaultPlaceholder ? (dex?.name ?? h.name) : h.name;
     const symbol = h.symbol.endsWith("...") ? (dex?.symbol ?? h.symbol) : h.symbol;
 
     return {
@@ -360,7 +361,8 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
   // ── 8. Resolve on-chain metadata for remaining unverified holdings ──
   for (let i = 0; i < filteredHoldings.length; i++) {
     const h = filteredHoldings[i];
-    if (h.name === "Unknown Token" || h.symbol.endsWith("...")) {
+    const defaultPlaceholder = `${h.mint.slice(0, 6)}...${h.mint.slice(-4)}`;
+    if (h.name === defaultPlaceholder || h.symbol.endsWith("...")) {
       const onChain = await fetchOnChainMetadata(h.mint, connection);
       if (onChain) {
         h.name = onChain.name || h.name;
@@ -411,7 +413,7 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
   const updateAuthority = await getUpdateAuthority(address, connection);
   const supply = Number(mint.supply) / Math.pow(10, mint.decimals);
 
-  let name = "Unknown Token", symbol = "???", isVerified = false;
+  let name = `${address.slice(0, 6)}...${address.slice(-4)}`, symbol = "???", isVerified = false;
   let metadataUri: string | undefined;
 
   // Local fallback for well-known verified tokens (USDC, USDT, SOL)
@@ -483,7 +485,8 @@ export async function fetchTokenData(address: string): Promise<TokenData> {
     }
   } catch {}
 
-  if ((name === "Unknown Token" || symbol === "???") && !localFallback) {
+  const defaultPlaceholder = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  if ((name === defaultPlaceholder || symbol === "???") && !localFallback) {
     const onChain = await fetchOnChainMetadata(address, connection);
     if (onChain) {
       name = onChain.name || name;

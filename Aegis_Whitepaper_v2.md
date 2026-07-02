@@ -105,8 +105,6 @@ $AEGIS powers access to the platform ecosystem:
 ---
 
 # Security & Trust
-
-## We Eat Our Own Cooking
 Aegis is a security product. Every claim we make about token safety applies to $AEGIS itself at launch:
 - ✅ **Mint Authority Renounced:** Supply is fixed forever.
 - ✅ **Freeze Authority Renounced:** Your tokens cannot be frozen.

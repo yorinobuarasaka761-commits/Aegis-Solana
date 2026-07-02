@@ -72,15 +72,16 @@
         .quarter-header {
             font-size: 24px;
             font-weight: 600;
-            color: #d6bcfa; /* light purple */
+            color: #d6bcfa;
             margin-bottom: 16px;
             display: flex;
             align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .quarter-header span {
             color: #ffffff;
-            margin-left: 10px;
         }
 
         .quarter ul {
@@ -100,7 +101,7 @@
 
         .quarter ul li::before {
             content: "•";
-            color: #9f7aea; /* purple */
+            color: #9f7aea;
             font-size: 20px;
             margin-right: 12px;
             line-height: 1;
@@ -132,6 +133,11 @@
             color: #f6ad55;
             border: 1px solid rgba(237, 137, 54, 0.3);
         }
+        .future {
+            background: rgba(160, 174, 192, 0.1);
+            color: #a0aec0;
+            border: 1px solid rgba(160, 174, 192, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -143,8 +149,13 @@
     </div>
 
     <div class="roadmap">
+
+        <!-- Phase 1 -->
         <div class="quarter">
-            <div class="quarter-header">Q3 2025 <span>Foundation</span> <div class="status achieved">Achieved</div></div>
+            <div class="quarter-header">
+                Phase 1 <span>Foundation</span>
+                <div class="status achieved">Completed</div>
+            </div>
             <ul>
                 <li>Deployment of the MVP wallet and token scanner.</li>
                 <li>Launch of the real-time risk scoring engine.</li>
@@ -154,30 +165,42 @@
             </ul>
         </div>
 
+        <!-- Phase 2 -->
         <div class="quarter">
-            <div class="quarter-header">Q4 2025 <span>Intelligence</span> <div class="status current">Current</div></div>
+            <div class="quarter-header">
+                Phase 2 <span>Intelligence & Token Launch</span>
+                <div class="status current">Current</div>
+            </div>
             <ul>
                 <li>Integration of decentralized token price feeds.</li>
                 <li>Deployment of transaction history and activity timelines per wallet.</li>
-                <li>Significant expansion of the known drainer and scammer database.</li>
-                <li>Implementation of mixer interaction detection algorithms.</li>
-                <li>Upgrade to Helius DAS metadata for superior token data enrichment.</li>
+                <li>Official deployment of the $AEGIS token on the Solana network.</li>
+                <li>Verifiable renunciation of mint and freeze authorities.</li>
+                <li>Establishment of the primary liquidity pool.</li>
             </ul>
         </div>
 
+        <!-- Phase 3 -->
         <div class="quarter">
-            <div class="quarter-header">Q1 2026 <span>Token Launch</span> <div class="status upcoming">Upcoming</div></div>
+            <div class="quarter-header">
+                Phase 3 <span>Security Expansion</span>
+                <div class="status upcoming">Upcoming</div>
+            </div>
             <ul>
-                <li>Official deployment of the AEGIS token on the Solana network.</li>
-                <li>Verifiable renunciation of mint and freeze authorities.</li>
-                <li>Establishment of the primary liquidity pool.</li>
+                <li>Significant expansion of the known drainer and scammer database.</li>
+                <li>Implementation of mixer interaction detection algorithms.</li>
+                <li>Upgrade to Helius DAS metadata for superior token data enrichment.</li>
                 <li>Activation of token-gated premium scanning features.</li>
                 <li>Rollout of the community governance framework for the threat database.</li>
             </ul>
         </div>
 
+        <!-- Phase 4 -->
         <div class="quarter">
-            <div class="quarter-header">Q2 2026 <span>Ecosystem Expansion</span> <div class="status upcoming">Future</div></div>
+            <div class="quarter-header">
+                Phase 4 <span>Ecosystem Expansion</span>
+                <div class="status future">Future</div>
+            </div>
             <ul>
                 <li>Launch of the Aegis public API for decentralized applications.</li>
                 <li>Release of the Aegis browser extension for real-time transactional warnings.</li>
@@ -186,6 +209,7 @@
                 <li>Strategic planning for cross-chain intelligence expansion.</li>
             </ul>
         </div>
+
     </div>
 </div>
 

@@ -112,7 +112,7 @@ Aegis is a security product. Every claim we make about token safety applies to $
 - ✅ **Verifiable On-Chain:** Scan $AEGIS with the Aegis Scanner to verify our claims.
 
 ## Open Verification
-We do not ask you to trust us. We ask you to verify. Every security claim about the $AEGIS token and platform can be checked on-chain using any Solana block explorer — or by pasting the $AEGIS contract address directly into aegissolana.xyz.
+We do not ask you to trust us. We ask you to verify. Every security claim about the $AEGIS token and platform can be checked on-chain using any Solana block explorer or by pasting the $AEGIS contract address directly into aegissolana.xyz.
 
 ---
 

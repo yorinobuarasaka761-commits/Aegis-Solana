@@ -784,11 +784,15 @@ export async function fetchTokenTrades(
 
     let txs: ParsedTxWrapper[] = [];
     try {
-      const batch = await connection.getParsedTransactions(sigStrings, {
-        maxSupportedTransactionVersion: 0,
-      });
-      for (let i = 0; i < batch.length; i++) {
-        const p = batch[i];
+      const txBatch = await Promise.all(
+        sigStrings.map((sig) =>
+          connection.getParsedTransaction(sig, {
+            maxSupportedTransactionVersion: 0,
+          })
+        )
+      );
+      for (let i = 0; i < txBatch.length; i++) {
+        const p = txBatch[i];
         if (p) {
           txs.push({
             parsed: p,

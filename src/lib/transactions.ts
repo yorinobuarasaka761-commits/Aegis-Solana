@@ -47,9 +47,13 @@ export async function fetchWalletTransactions(
     let delayMs = 500;
     while (retries > 0) {
       try {
-        txs = await connection.getParsedTransactions(sigStrings, {
-          maxSupportedTransactionVersion: 0,
-        });
+        txs = await Promise.all(
+          sigStrings.map((sig) =>
+            connection.getParsedTransaction(sig, {
+              maxSupportedTransactionVersion: 0,
+            })
+          )
+        );
         break;
       } catch (err: any) {
         const isRateLimit = err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429;

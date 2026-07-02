@@ -10,15 +10,28 @@ export async function fetchWalletTransactions(
 ): Promise<ParsedTransaction[]> {
   const pubkey = new PublicKey(address);
 
-  // Step 1: Get the last 25 transaction signatures
+  // Step 1: Get the last 25 transaction signatures with retry logic
   let signatures;
-  try {
-    signatures = await connection.getSignaturesForAddress(pubkey, {
-      limit: LIMIT,
-    });
-  } catch (err) {
-    console.error("[Aegis] getSignaturesForAddress failed:", err);
-    return []; // fail gracefully — never crash the whole scan
+  let retries = 3;
+  let delayMs = 500;
+  
+  while (retries > 0) {
+    try {
+      signatures = await connection.getSignaturesForAddress(pubkey, {
+        limit: LIMIT,
+      });
+      break;
+    } catch (err: any) {
+      const isRateLimit = err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429;
+      if (isRateLimit && retries > 1) {
+        retries--;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+      } else {
+        console.error("[Aegis] getSignaturesForAddress failed:", err);
+        return []; // fail gracefully — never crash the whole scan
+      }
+    }
   }
 
   if (!signatures || signatures.length === 0) return [];

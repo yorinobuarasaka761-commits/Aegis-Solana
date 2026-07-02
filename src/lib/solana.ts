@@ -323,12 +323,10 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
     };
   });
 
-  let transactions: ParsedTransaction[] = [];
-  try {
-    transactions = await fetchWalletTransactions(connection, address);
-  } catch (err) {
+  const transactionsPromise = fetchWalletTransactions(connection, address).catch((err) => {
     console.error("[Aegis] Transaction fetch failed silently:", err);
-  }
+    return [] as ParsedTransaction[];
+  });
 
   // ── 6. Deriving recent malicious interactions from parsed transactions ──
   const recentInteractions: MaliciousInteraction[] = [];
@@ -354,6 +352,7 @@ export async function fetchWalletData(address: string): Promise<WalletData> {
   }
 
   // Derive other interactions from parsed transactions
+  const transactions = await transactionsPromise;
   for (const tx of transactions) {
     if (tx.isMalicious && tx.counterparty) {
       const malInfo = MALICIOUS_ADDRESSES[tx.counterparty];
@@ -613,7 +612,27 @@ export async function fetchTokenTrades(
   if (HELIUS_API_KEY) {
     try {
       const targetPubkey = new PublicKey(targetAddress);
-      const sigs = await connection.getSignaturesForAddress(targetPubkey, { limit: 50 });
+      let sigs;
+      let retries = 3;
+      let delayMs = 500;
+      while (retries > 0) {
+        try {
+          sigs = await connection.getSignaturesForAddress(targetPubkey, { limit: 50 });
+          break;
+        } catch (err: any) {
+          if (err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429) {
+            if (retries > 1) {
+              retries--;
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              delayMs *= 2;
+            } else {
+              throw err;
+            }
+          } else {
+            throw err;
+          }
+        }
+      }
 
       if (sigs && sigs.length > 0) {
         // Helius batch enhanced transaction parser (max 100 per call)
@@ -733,7 +752,27 @@ export async function fetchTokenTrades(
   // ── Strategy 2: DEX-agnostic RPC fallback ───────────────────────────────
   try {
     const targetPubkey = new PublicKey(pairAddress ?? tokenAddress);
-    const signatures = await connection.getSignaturesForAddress(targetPubkey, { limit: 15 });
+    let signatures;
+    let retries = 3;
+    let delayMs = 500;
+    while (retries > 0) {
+      try {
+        signatures = await connection.getSignaturesForAddress(targetPubkey, { limit: 15 });
+        break;
+      } catch (err: any) {
+        if (err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429) {
+          if (retries > 1) {
+            retries--;
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            delayMs *= 2;
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
     if (!signatures || signatures.length === 0) return trades;
 
     const sigStrings = signatures.map((s) => s.signature);

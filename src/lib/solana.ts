@@ -784,13 +784,36 @@ export async function fetchTokenTrades(
 
     let txs: ParsedTxWrapper[] = [];
     try {
-      const txBatch = await Promise.all(
-        sigStrings.map((sig) =>
-          connection.getParsedTransaction(sig, {
-            maxSupportedTransactionVersion: 0,
-          })
-        )
-      );
+      const txBatch = [];
+      for (const sig of sigStrings) {
+        let p = null;
+        let retries = 3;
+        let delayMs = 500;
+        while (retries > 0) {
+          try {
+            p = await connection.getParsedTransaction(sig, {
+              maxSupportedTransactionVersion: 0,
+            });
+            break;
+          } catch (err: any) {
+            if (err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429) {
+              retries--;
+              if (retries > 0) {
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                delayMs *= 2;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+        if (p) {
+          txBatch.push(p);
+        } else {
+          txBatch.push(null);
+        }
+        await new Promise((r) => setTimeout(r, 100)); // 100ms delay
+      }
       for (let i = 0; i < txBatch.length; i++) {
         const p = txBatch[i];
         if (p) {
@@ -802,29 +825,7 @@ export async function fetchTokenTrades(
         }
       }
     } catch (err: any) {
-      if (err.message?.includes("Too many requests") || err.code === 429) {
-        console.warn("fetchTokenTrades batch fetch rate limited; falling back to sequential fetching.");
-        const subset = signatures.slice(0, 5);
-        for (const sigInfo of subset) {
-          try {
-            const parsed = await connection.getParsedTransaction(sigInfo.signature, {
-              maxSupportedTransactionVersion: 0,
-            });
-            if (parsed) {
-              txs.push({
-                parsed,
-                signature: sigInfo.signature,
-                blockTime: sigInfo.blockTime,
-              });
-            }
-            await new Promise((resolve) => setTimeout(resolve, 300));
-          } catch {
-            // ignore individual transaction errors
-          }
-        }
-      } else {
-        throw err;
-      }
+      console.error("fetchTokenTrades error:", err);
     }
 
     for (const wrapper of txs) {

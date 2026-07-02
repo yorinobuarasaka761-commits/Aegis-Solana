@@ -43,28 +43,34 @@ export async function fetchWalletTransactions(
     
     // Retry with backoff for 429s
     let txs: any[] = [];
-    let retries = 3;
-    let delayMs = 500;
-    while (retries > 0) {
-      try {
-        txs = await Promise.all(
-          sigStrings.map((sig) =>
-            connection.getParsedTransaction(sig, {
-              maxSupportedTransactionVersion: 0,
-            })
-          )
-        );
-        break;
-      } catch (err: any) {
-        const isRateLimit = err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429;
-        if (isRateLimit && retries > 1) {
-          retries--;
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-          delayMs *= 2;
-        } else {
-          throw err;
+    for (const sig of sigStrings) {
+      let tx = null;
+      let retries = 3;
+      let delayMs = 500;
+      while (retries > 0) {
+        try {
+          tx = await connection.getParsedTransaction(sig, {
+            maxSupportedTransactionVersion: 0,
+          });
+          break;
+        } catch (err: any) {
+          const isRateLimit = err.message?.includes("429") || err.message?.includes("Too many requests") || err.code === 429;
+          if (isRateLimit && retries > 1) {
+            retries--;
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            delayMs *= 2;
+          } else {
+            console.error(`Failed to fetch parsed tx ${sig}:`, err.message);
+            break;
+          }
         }
       }
+      if (tx) {
+        txs.push(tx);
+      } else {
+        txs.push(null); // Keep array aligned with signatures
+      }
+      await new Promise((r) => setTimeout(r, 100)); // 100ms delay between each tx
     }
 
     for (let i = 0; i < txs.length; i++) {
